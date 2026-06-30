@@ -11,7 +11,7 @@ Protocol (one folder per job, self-contained so the worker needs nothing else):
     $KLOOP_COLAB_QUEUE/<job_id>/
         job.json          # {job_id, run_id, competition, entrypoint, args,
                           #  requirements, timeout, gpu, created}
-        code/             # snapshot of runs/<id>/experiments/code at submit time
+        code/             # snapshot of projects/<name>/code at submit time
     $KLOOP_COLAB_RESULTS/<job_id>/
         result.json       # {ok, returncode, metric, duration_s, artifacts, ...}
         run.log           # captured stdout+stderr
@@ -19,7 +19,7 @@ Protocol (one folder per job, self-contained so the worker needs nothing else):
 
 This module is the local half: ``submit`` enqueues a job, ``status`` inspects the
 queue/results, and ``ingest`` pulls a finished job's artifacts back into the
-campaign's ``experiments/results/``. The worker half is ``colab/worker.py``.
+project's ``experiments/results/``. The worker half is ``colab/worker.py``.
 
 Console output is Japanese; code/comments are English.
 """
@@ -48,19 +48,19 @@ def _results_dir() -> Path:
 
 
 def _resolve(run_id):
-    rid = run_id or state.current_run()
+    rid = run_id or state.current_project()
     if not rid:
-        print("実行中のキャンペーンがありません（--run を指定してください）", file=sys.stderr)
+        print("アクティブなプロジェクトがありません（--name を指定してください）", file=sys.stderr)
         raise SystemExit(2)
     return rid
 
 
 def submit(run_id: str, entrypoint: str, args: list[str], requirements: str,
            timeout: int, gpu: bool) -> str:
-    """Enqueue a Colab job. ``entrypoint`` is relative to experiments/code."""
+    """Enqueue a Colab job. ``entrypoint`` is relative to the project's code/ dir."""
     rid = _resolve(run_id)
     st = state.load_state(rid)
-    code_dir = state.run_dir(rid) / "experiments" / "code"
+    code_dir = state.project_dir(rid) / "code"
     src = (code_dir / entrypoint)
     if not src.exists():
         print(f"✗ エントリポイントが見つかりません: {src}", file=sys.stderr)
@@ -136,10 +136,10 @@ def status(job_id: str | None) -> int:
 
 
 def ingest(run_id: str, job_id: str | None) -> int:
-    """Copy finished job artifacts into the campaign's results dir."""
+    """Copy finished job artifacts into the project's results dir."""
     rid = _resolve(run_id)
     rd = _results_dir()
-    dest_root = state.run_dir(rid) / "experiments" / "results"
+    dest_root = state.project_dir(rid) / "experiments" / "results"
     targets = [job_id] if job_id else [
         p.name for p in rd.glob("*") if (p / "result.json").exists()
     ]
@@ -172,24 +172,24 @@ def main(argv=None) -> int:
     sub = p.add_subparsers(dest="cmd", required=True)
 
     ps = sub.add_parser("submit", help="enqueue a Colab job")
-    ps.add_argument("--run", default=None)
-    ps.add_argument("--script", required=True, help="entrypoint relative to experiments/code")
+    ps.add_argument("--name", default=None)
+    ps.add_argument("--script", required=True, help="entrypoint relative to the project code/ dir")
     ps.add_argument("--args", nargs="*", default=[], help="args passed to the script")
     ps.add_argument("--requirements", default="", help="requirements.txt path inside code/")
     ps.add_argument("--timeout", type=int, default=3600)
     ps.add_argument("--no-gpu", dest="gpu", action="store_false")
     ps.set_defaults(gpu=True,
-                    func=lambda a: print(submit(a.run, a.script, a.args,
+                    func=lambda a: print(submit(a.name, a.script, a.args,
                                                 a.requirements, a.timeout, a.gpu)) or 0)
 
     pst = sub.add_parser("status", help="show queue/results status")
     pst.add_argument("--job", default=None)
     pst.set_defaults(func=lambda a: status(a.job))
 
-    pi = sub.add_parser("ingest", help="pull finished results into the campaign")
-    pi.add_argument("--run", default=None)
+    pi = sub.add_parser("ingest", help="pull finished results into the project")
+    pi.add_argument("--name", default=None)
     pi.add_argument("--job", default=None)
-    pi.set_defaults(func=lambda a: ingest(a.run, a.job))
+    pi.set_defaults(func=lambda a: ingest(a.name, a.job))
 
     args = p.parse_args(argv)
     return args.func(args)

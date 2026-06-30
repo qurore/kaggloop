@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
-"""Stop hook: optional, bounded, human-gated autopilot for the win-loop.
+"""Stop hook: optional, bounded, human-gated, GOAL-DRIVEN autopilot.
 
-Design intent (this is the core differentiator): **the human chooses the
-competition; everything after is automated.** So this hook *never* auto-advances
-out of the ``scout`` stage — it always pauses there for the human to read the
-TLDR cards in ``competitions/shortlist/`` and pick. Once a competition is
-selected, and only if ``KLOOP_AUTOPILOT=1``, the hook drives the inner loop
-``survey -> hypothesize -> experiment -> submit`` hands-off, and loops
-``hypothesize -> experiment -> submit`` for up to ``KLOOP_MAX_ITERATIONS`` full
-iterations to keep improving the score.
+The loop's reason to keep going is a **gap to a target score**: each project
+carries a ``target_score`` (the score we aim to receive at submission); after each
+submit we compare the actual score to it, and if a gap remains we loop the
+verification (``hypothesize -> experiment -> submit``) to close it. This hook
+encodes that: it advances stages hands-off and keeps looping **while the target is
+unmet and budget remains**, then finalizes.
 
-Two independent safety bounds: a per-session auto-advance counter
-(``KLOOP_AUTOPILOT_MAX``, default 10) and the loop-iteration budget
-(``KLOOP_MAX_ITERATIONS``, default 3). Decision reasons are agent-facing
-instructions, so they stay in English. Off by default — without the env var the
-agent pauses between stages for the user to review.
+Two hard rules always hold:
+  * **Human gate** — never auto-advance out of ``scout``; a human picks the
+    competition (and nothing proceeds until ``competition`` is set).
+  * **Bounds** — a per-session step cap (``KLOOP_AUTOPILOT_MAX``, default 10) and a
+    loop-iteration budget (``KLOOP_MAX_ITERATIONS``, default 3).
+
+Off by default — without ``KLOOP_AUTOPILOT=1`` the agent pauses between stages.
+Decision reasons are agent-facing instructions, so they stay in English.
 """
 
 import json
@@ -26,13 +27,11 @@ REPO = Path(os.environ.get("CLAUDE_PROJECT_DIR", ".")).resolve()
 CACHE = REPO / ".kloop-cache"
 MAX_ADVANCES = int(os.environ.get("KLOOP_AUTOPILOT_MAX", "10"))
 MAX_ITERATIONS = int(os.environ.get("KLOOP_MAX_ITERATIONS", "3"))
-LOOP = ["hypothesize", "experiment", "submit"]
 
 
 def _count() -> int:
-    p = CACHE / "autopilot_count"
     try:
-        return int(p.read_text().strip())
+        return int((CACHE / "autopilot_count").read_text().strip())
     except Exception:
         return 0
 
@@ -67,10 +66,10 @@ def main():
     try:
         sys.path.insert(0, str(REPO))
         from kloop import state
-        rid = state.current_run()
-        if not rid:
+        name = state.current_project()
+        if not name:
             _allow_stop()
-        st = state.load_state(rid)
+        st = state.load_state(name)
     except Exception:
         _allow_stop()
 
@@ -80,6 +79,11 @@ def main():
     stage = st.get("stage", "scout")
     status = st.get("status", "pending")
     iteration = int(st.get("iteration") or 0)
+    direction = st.get("metric_direction") or "maximize"
+    target = st.get("target_score")
+    actual = st.get("best_lb") if st.get("best_lb") is not None else st.get("best_cv")
+    g = state.gap(target, actual, direction)
+    met = state.target_met(target, actual, direction)
 
     # --- HUMAN GATE: never auto-advance past competition selection. -----------
     if stage == "scout" or not st.get("competition"):
@@ -90,34 +94,40 @@ def main():
     if n >= MAX_ADVANCES:
         _set_count(0)
         _block(
-            f"[autopilot] Reached the {MAX_ADVANCES}-step safety cap for campaign "
-            f"{rid}. Pausing. Summarize progress (best_cv={st.get('best_cv')}, "
-            f"best_lb={st.get('best_lb')}) and ask the user whether to continue "
-            f"(they can raise KLOOP_AUTOPILOT_MAX)."
+            f"[autopilot] Reached the {MAX_ADVANCES}-step safety cap for project "
+            f"{name}. Pausing. Summarize progress (target={target}, actual={actual}, "
+            f"gap={g}) and ask the user whether to continue (raise KLOOP_AUTOPILOT_MAX)."
         )
 
     # --- Decide the next concrete action. ------------------------------------
     if status == "done":
         if stage == "survey":
-            action = "stage 'survey' is done — start '/kaggloop-hypothesize'"
+            action = ("survey done — start '/kaggloop-hypothesize'. Ensure a target_score "
+                      "is set (`python -m kloop.project set --target-score ...`); it is the loop's compass.")
         elif stage == "hypothesize":
-            action = "stage 'hypothesize' is done — start '/kaggloop-experiment'"
+            action = "hypothesize done — start '/kaggloop-experiment'"
         elif stage == "experiment":
-            action = "stage 'experiment' is done — start '/kaggloop-submit'"
+            action = ("experiment done — start '/kaggloop-submit'. The leakage gate must pass "
+                      "(`python -m kloop.gate verify`) before any submission.")
         elif stage == "submit":
-            if iteration + 1 < MAX_ITERATIONS:
+            # GOAL-DRIVEN loop decision: gap to target steers it.
+            if target is not None and met:
+                action = (f"submit done and TARGET MET (actual={actual} reached target={target}). "
+                          f"Finalize: confirm the best submission and `python -m kloop.project set --complete`.")
+            elif iteration + 1 < MAX_ITERATIONS:
                 action = (
-                    f"submit is done (iteration {iteration}). Loop budget allows more "
-                    f"({iteration + 1}/{MAX_ITERATIONS}). Bump the iteration "
-                    f"(`python -m kloop.run set --iteration {iteration + 1}`), then start a "
-                    f"new round with '/kaggloop-hypothesize' using what you learned "
-                    f"(failed/kept hypotheses, LB feedback)."
+                    f"submit done, target NOT met (gap={g}, actual={actual}, target={target}). "
+                    f"Budget allows more ({iteration + 1}/{MAX_ITERATIONS}). STUDY THE GAP "
+                    f"(`python -m kloop.project gap --log`): why are we short, what is the highest-"
+                    f"leverage way to close it? Bump the iteration "
+                    f"(`python -m kloop.project set --iteration {iteration + 1}`) and start a new "
+                    f"round with '/kaggloop-hypothesize' targeting that gap."
                 )
             else:
                 action = (
-                    f"submit is done and the loop budget ({MAX_ITERATIONS}) is spent. "
-                    f"Finalize: confirm the best submission is selected, write the "
-                    f"campaign summary, then `python -m kloop.run set --complete`."
+                    f"submit done; loop budget ({MAX_ITERATIONS}) spent and target not reached "
+                    f"(gap={g}). Finalize honestly: record best_cv/best_lb vs target in the gap "
+                    f"history, write the summary, and `python -m kloop.project set --complete`."
                 )
         else:
             action = f"continue working stage '{stage}'"
@@ -126,10 +136,10 @@ def main():
 
     _set_count(n + 1)
     _block(
-        f"[autopilot {n + 1}/{MAX_ADVANCES}] Campaign {rid}: {action}. "
-        f"Keep runs/{rid}/state.json, hypotheses.jsonl and campaign.md current. "
-        f"Respect Kaggle's daily submission limit. When fully finished run "
-        f"`python -m kloop.run set --complete` so autopilot stops."
+        f"[autopilot {n + 1}/{MAX_ADVANCES}] Project {name}: {action}. "
+        f"Keep projects/{name}/state.json, hypotheses.jsonl, progress.jsonl and README.md "
+        f"current. Respect Kaggle's daily submission limit. When fully finished run "
+        f"`python -m kloop.project set --complete` so autopilot stops."
     )
 
 

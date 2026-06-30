@@ -20,7 +20,7 @@ if [ -d ".venv" ]; then
   for mod in numpy pandas sklearn requests; do
     .venv/bin/python -c "import $mod" 2>/dev/null && ok "import $mod" || bad "import $mod (run setup.sh)"
   done
-  .venv/bin/python -c "import kloop.state, kloop.ledger, kloop.colab, kloop.score" 2>/dev/null \
+  .venv/bin/python -c "import kloop.state, kloop.project, kloop.ledger, kloop.colab, kloop.score, kloop.gate, kloop.journal" 2>/dev/null \
     && ok "kloop package imports" || bad "kloop package import failed"
 fi
 
@@ -55,7 +55,7 @@ R="${KLOOP_COLAB_RESULTS:-$REPO_ROOT/.kloop-colab/results}"
 [ -d "$R" ] && ok "results dir: $R" || warn "results dir not found: $R (set KLOOP_COLAB_RESULTS)"
 [ "${KLOOP_COLAB_QUEUE:-}" = "" ] && warn "KLOOP_COLAB_QUEUE unset — using local default (no Colab sync). See colab/README.md"
 
-echo "[campaigns]"
+echo "[projects]"
 if [ -d ".venv" ]; then
-  .venv/bin/python -m kloop.run list 2>/dev/null || echo "  (none yet)"
+  .venv/bin/python -m kloop.project list 2>/dev/null || echo "  (none yet)"
 fi

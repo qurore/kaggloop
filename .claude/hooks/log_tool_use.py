@@ -28,8 +28,8 @@ def main():
     try:
         sys.path.insert(0, str(REPO))
         from kloop import state
-        rid = state.current_run()
-        if not rid:
+        name = state.current_project()
+        if not name:
             sys.exit(0)
         command = (payload.get("tool_input") or {}).get("command", "")
         rec = {
@@ -37,7 +37,7 @@ def main():
             "command": command[:1000],
             "cwd": payload.get("cwd", ""),
         }
-        log = state.run_dir(rid) / "experiments" / "tool_log.jsonl"
+        log = state.project_dir(name) / "experiments" / "tool_log.jsonl"
         log.parent.mkdir(parents=True, exist_ok=True)
         with log.open("a") as f:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")

@@ -8,7 +8,7 @@ ensembling.
 
 Run them as modules from the repo root, e.g.::
 
-    python -m kloop.run    new --slug titanic --competition titanic --metric accuracy
+    python -m kloop.project new --slug titanic --competition titanic --metric accuracy
     python -m kloop.kaggle list --category getting-started
     python -m kloop.ledger add --title "pseudo-labeling" --expected-gain 0.004 --confidence 0.6
     python -m kloop.colab  submit --script train.py --timeout 5400
@@ -18,4 +18,4 @@ Console output is Japanese (user-facing); all code, comments, and docstrings are
 English.
 """
 
-__all__ = ["state", "run", "ledger", "kaggle", "colab", "score"]
+__all__ = ["state", "project", "ledger", "kaggle", "colab", "score", "gate", "journal"]

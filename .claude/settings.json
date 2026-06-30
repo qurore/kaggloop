@@ -8,8 +8,10 @@
   },
   "permissions": {
     "allow": [
-      "Bash(python -m kloop.run:*)",
+      "Bash(python -m kloop.project:*)",
       "Bash(python -m kloop.ledger:*)",
+      "Bash(python -m kloop.gate:*)",
+      "Bash(python -m kloop.journal:*)",
       "Bash(python -m kloop.kaggle list:*)",
       "Bash(python -m kloop.kaggle files:*)",
       "Bash(python -m kloop.kaggle kernels:*)",
@@ -18,8 +20,10 @@
       "Bash(python -m kloop.colab status:*)",
       "Bash(python -m kloop.colab ingest:*)",
       "Bash(python -m kloop.score:*)",
-      "Bash(.venv/bin/python -m kloop.run:*)",
+      "Bash(.venv/bin/python -m kloop.project:*)",
       "Bash(.venv/bin/python -m kloop.ledger:*)",
+      "Bash(.venv/bin/python -m kloop.gate:*)",
+      "Bash(.venv/bin/python -m kloop.journal:*)",
       "Bash(.venv/bin/python -m kloop.colab status:*)",
       "Bash(.venv/bin/python -m kloop.score:*)",
       "Bash(bash scripts/doctor.sh)"
@@ -44,6 +48,10 @@
           {
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_experiment_exec.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_submission.py\""
           }
         ]
       }

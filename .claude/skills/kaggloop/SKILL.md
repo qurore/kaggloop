@@ -1,124 +1,111 @@
 ---
 name: kaggloop
-description: Orchestrate an end-to-end Kaggle competition campaign — scout competitions (human picks one) → survey the competition + literature → form critical-to-win hypotheses → run experiments on Colab → ensemble & submit, looping to improve the score. Use when the user wants to "run kaggloop", autonomously enter/win a Kaggle competition, or go from a shortlist of competitions to automated submissions. Delegates to the kaggloop-scout / -survey / -hypothesize / -experiment / -submit stage skills.
+description: Orchestrate an end-to-end Kaggle competition project — scout a competition (human picks one from TLDR cards) → survey it + the literature and set a target score → form critical-to-win hypotheses → run experiments on Colab → pass a strict data-leakage gate → ensemble & submit, then loop while the score is short of the target. Use when the user wants to "run kaggloop", autonomously enter/win a Kaggle competition, or hand it a competition URL. Delegates to the kaggloop-scout / -survey / -hypothesize / -experiment / -submit stage skills.
 ---
 
 # kaggloop — Loop Engineering for Kaggle (Claude Code-native orchestrator)
 
-You are driving an autonomous Kaggle competition pipeline built **entirely inside the
-Claude Code ecosystem** — the stages are **Skills**, the automation + safety + human
-gates are **Hooks**. **You — the Claude Code agent — are the competitor.** You read the
-competition, mine the top notebooks and discussions, search the academic literature
-through the science MCP servers, form *critical-to-win* hypotheses, write and run the
-training code on Colab, ensemble, and submit. No external LLM API keys are involved.
+You are driving an autonomous Kaggle project built **entirely inside the Claude Code
+ecosystem** — stages are **Skills**, automation + safety + human/quality gates are
+**Hooks**. **You — the Claude Code agent — are the competitor.** You read the competition,
+mine top notebooks and discussions, search the academic literature via science MCP
+servers, form *critical-to-win* hypotheses, write and run training code on **Google
+Colab**, ensemble, and submit. No external LLM API keys.
 
-What makes this different from a one-shot "write me a Kaggle notebook" bot:
+## The core idea: a goal-driven gap-closing loop
 
-1. **Exploratory, hypothesis-driven (AI-Scientist-v2 style).** Each iteration we write
-   down explicit, ranked, testable bets about what will move the score, verify them with
-   real cross-validation, and keep/prune based on evidence — a search over ideas, not a
-   single guess. See `kaggloop-hypothesize`.
-2. **Science-backed.** We use the `arxiv` and `semantic-scholar` MCP servers to find the
-   latest methods relevant to the task and ground hypotheses in real papers — alongside
-   the competition's own top notebooks and discussions.
-3. **Claude Code ecosystem only.** Skills + Hooks. No bespoke daemon, no external agent
-   framework.
-4. **Human-in-the-loop theme selection.** The `scout` stage produces human-readable TLDR
-   cards; **a human picks the competition**. Everything after that is automated.
+The loop exists to **close a gap to a target score**. Every project carries a
+`target_score` — the score we aim to *receive at submission* (derived from the leaderboard
+distribution: a medal line / top-X% / the top public notebook). Each iteration we compare
+the **actual** score to the target, **study the gap** ("差分の研究" — why are we short, what
+is the highest-leverage fix?), and loop the verification to close it. The gap is the
+loop's compass:
+
+```bash
+python -m kloop.project gap --log     # target vs actual; tells you whether to keep looping
+```
+
+The loop continues while the target is unmet and budget remains; it finalizes when the
+target is met or `KLOOP_MAX_ITERATIONS` is spent. This gap mechanism is the most important
+part of the system.
+
+## What else makes it different
+
+1. **Exploratory & hypothesis-driven (AI-Scientist-v2 style):** ranked, testable bets,
+   verified by real CV, kept/pruned on evidence.
+2. **Science-backed:** `arxiv` + `semantic-scholar` MCP ground hypotheses in real papers,
+   alongside the competition's own top notebooks and discussions.
+3. **Claude Code ecosystem only:** Skills + Hooks.
+4. **Human picks the theme:** scout emits TLDR cards; a human chooses. Everything after is
+   automated — including submission.
+5. **A strict data-leakage quality gate** (Kaggle's classic trap) that is *enforced*: a
+   PreToolUse hook blocks any submission until `kloop.gate` passes.
 
 ## The win-loop
 
 | Stage | Skill | Output | Human? |
 |------:|-------|--------|:------:|
-| 0. Scout      | `kaggloop-scout`       | `competitions/shortlist/*.md` TLDR cards | **picks** |
-| 1. Survey     | `kaggloop-survey`      | `runs/<id>/dossier.md` (+ data, metric)  | auto |
-| 2. Hypothesize| `kaggloop-hypothesize` | `runs/<id>/hypotheses.jsonl` (ranked)    | auto |
-| 3. Experiment | `kaggloop-experiment`  | Colab job results, CV scores, OOF preds  | auto |
-| 4. Submit     | `kaggloop-submit`      | ensemble → Kaggle submission → LB score  | auto |
+| 0. Scout       | `/kaggloop-scout`       | a project + `projects/<name>/TLDR.md` (or a discovery shortlist) | **picks** |
+| 1. Survey      | `/kaggloop-survey`      | `dossier.md`, CV scheme, **`target_score`** | auto |
+| 2. Hypothesize | `/kaggloop-hypothesize` | ranked `hypotheses.jsonl` (gap-focused) | auto |
+| 3. Experiment  | `/kaggloop-experiment`  | Colab results, CV, OOF preds, **per-experiment leakage checks** | auto |
+| 4. Submit      | `/kaggloop-submit`      | **gate verify** → ensemble → Kaggle submit → LB → **gap decision** | auto |
 
-The inner loop **2 → 3 → 4 → 2** repeats (bounded by `KLOOP_MAX_ITERATIONS`) to keep
-raising the score with what each round learned. Invoke a stage with its slash command
-(e.g. `/kaggloop-survey`) or follow its SKILL.md. This umbrella skill coordinates them.
+Inner loop **2 → 3 → 4 → 2** repeats until the target is met or the budget is spent.
 
-## Campaign layout
+## Two ways to start (the input → TLDR → decide → flow path)
 
-Every campaign (one competition) lives in one directory:
-`runs/<YYYY-MM-DD_HH-MM-SS>_<slug>/`
+- **Targeted (main / web-app style):** the user hands you one competition (a URL or slug,
+  e.g. `https://www.kaggle.com/competitions/<slug>/...`). Run `/kaggloop-scout` on it: it
+  creates a project, writes `projects/<name>/TLDR.md`, and you present it for a **go/no-go**
+  decision. On "go", continue to survey. (A web app is just a thin front-end that feeds the
+  URL into this same flow.)
+- **Discovery:** the user gives interests; scout lists candidates and writes lightweight
+  TLDR cards to `competitions/shortlist/` to compare, then the chosen one becomes a project.
 
+## Project layout (one self-contained folder per competition)
+
+`projects/<name>/` holds **everything**: `state.json` (source of truth) · `README.md`
+(lab notebook) · `TLDR.md` · `dossier.md` · `hypotheses.jsonl` · `progress.jsonl`
+(target-vs-actual history) · `gate.json` + `gate_checks.json` (leakage gate) ·
+`code/` (all implementation + verification code) · `experiments/{jobs,results,plots}` ·
+`submissions/` (+`leaderboard.jsonl`) · `notes/` · `data/`. See `projects/README.md` for
+the layout and the **gitignore toggle** (project contents are gitignored by default so the
+public repo stays clean; un-ignore them in a private fork).
+
+Seed a project (scout usually does this for you):
+```bash
+python -m kloop.project new --slug "<comp-slug>" --competition "<comp-slug>" --metric "<metric>"
 ```
-runs/<id>/
-  state.json          # {stage,status,competition,metric,metric_direction,
-                      #  iteration,best_cv,best_lb,best_submission} — source of truth
-  competition.json    # raw competition metadata (kaggle API + scout notes)
-  dossier.md          # survey output: data, metric, top notebooks, discussions, papers
-  hypotheses.jsonl    # the ranked hypothesis ledger (one bet per line)
-  experiments/
-    code/             # pipeline code you write (snapshotted into each Colab job)
-    jobs/             # local copies of submitted job specs
-    results/          # results ingested back from Colab (metric.json, oof.npy, logs)
-    plots/            # figures
-  submissions/
-    *.csv             # submission files
-    leaderboard.jsonl # submission file -> public LB score log
-  campaign.md         # human-readable running lab notebook
-```
 
-`state.json` is authoritative. The Stop hook reads it for optional autopilot; always
-keep it current as you advance (`python -m kloop.run set ...`).
+## Autopilot (opt-in)
 
-## How to start a campaign
-
-1. **Check the environment.** `bash scripts/doctor.sh` (the SessionStart hook also prints
-   a status banner). If deps are missing, point the user to `scripts/setup.sh`. The
-   campaign needs: the `kaggle` CLI + an API token (`~/.kaggle/kaggle.json`), the science
-   MCP servers (`/mcp`), and a Colab worker for compute (see `colab/README.md`).
-2. **Scout** unless the user already named a competition: run `/kaggloop-scout` to build
-   TLDR cards for candidate competitions. **Stop and let the human choose** — this is the
-   one mandatory human gate (the autopilot hook enforces it).
-3. Once a competition is chosen, create/seed the campaign:
-   ```bash
-   python -m kloop.run new --slug "<comp-slug>" --competition "<comp-slug>" --metric "<metric>"
-   ```
-   (prints the run id; also records it as the current run).
-4. Run `/kaggloop-survey` → `/kaggloop-hypothesize` → `/kaggloop-experiment` →
-   `/kaggloop-submit`, updating `state.json` after each. Pause and summarize for the user
-   between stages unless they asked for **autopilot**.
-
-## Autopilot (optional, opt-in)
-
-Set `KLOOP_AUTOPILOT=1` to let the Stop hook auto-advance stages and loop the inner
-cycle hands-off, bounded by `KLOOP_AUTOPILOT_MAX` (per-session step cap) and
-`KLOOP_MAX_ITERATIONS` (full loops). It **never** auto-advances out of `scout` — a human
-always picks the competition. Default is **off**; tell the user the toggle exists, don't
-enable it silently.
+`KLOOP_AUTOPILOT=1` lets the Stop hook auto-advance stages and loop hands-off, bounded by
+`KLOOP_AUTOPILOT_MAX` (per-session steps) and `KLOOP_MAX_ITERATIONS` (full loops), driven
+by the gap to target. It **never** auto-advances out of `scout` — a human always picks the
+competition. Default is off; tell the user it exists, don't enable it silently.
 
 ## Compute model (Colab)
 
-This machine (macOS) has **no GPU**. Training runs on **Google Colab** through the
-filesystem bridge in `kloop.colab` + `colab/worker.py`: you snapshot the campaign's
-`experiments/code/`, enqueue a job, the Colab worker runs it on GPU and writes results
-back, and you ingest them. Keep the local side cheap (orchestration, small CV merges,
-ensembling); push heavy training to Colab. See `colab/README.md`. Be honest with the
-user about wall-clock time and Colab usage limits for big jobs.
+No GPU here (macOS). Training runs on **Google Colab** via the filesystem bridge
+(`kloop.colab` ⇄ `colab/worker.py`) over a Drive-synced folder: snapshot
+`projects/<name>/code/`, enqueue a job, the worker runs it on GPU and writes results back,
+you ingest them. Keep the local side cheap; push heavy training to Colab. See
+`colab/README.md`.
 
 ## Operating principles
 
-- **Be a rigorous competitor.** Trust a robust local CV that matches the metric and the
-  competition's split; treat the public LB as a small, noisy validation set — never
-  overfit to it. State each hypothesis, test it, report honest CV/LB deltas (including
-  the bets that *didn't* work — those are kept in the ledger as `rejected`).
-- **Never fabricate** scores, leaderboard positions, or citations. Every CV number must
-  trace to a file under `experiments/results/`; every LB number to a real submission in
-  `submissions/leaderboard.jsonl`; every paper to a real, findable reference.
-- **Play by the rules.** Read the competition rules during survey: external-data
-  policy, allowed frameworks, team/submission limits, code-competition constraints. Do
-  not use banned data or leaks. Respect the daily submission cap.
-- **Keep `campaign.md` updated** like a lab notebook, and checkpoint `state.json` after
-  every stage so a crash/resume continues cleanly.
+- **Trust local CV, not the public LB.** Build a CV matching the metric and the
+  competition's split; the LB is a small noisy validation set. The target/gap is on the
+  realized score, but CV is what you optimize.
+- **Pass the leakage gate before every submission.** It is enforced; never bypass it.
+- **Never fabricate** scores or citations: every CV number traces to a file under
+  `experiments/results/`, every LB number to `submissions/leaderboard.jsonl`.
+- **Play by the rules** (external-data policy, frameworks, code-comp limits, daily
+  submission cap). Submitting acts on the user's real Kaggle account.
+- Keep `state.json`, `progress.jsonl`, and `README.md` current after every step.
 
-## Safety (enforced by hooks, but stay alert)
+## Safety (enforced by hooks)
 
-The `guard-experiment-exec` PreToolUse hook blocks obviously dangerous shell (network
-installs piped to a shell, `rm -rf` outside the run dir, credential/`kaggle.json`
-exfiltration, guard tampering). If it blocks a command, **fix the step** so it doesn't
-need the dangerous action — never route around the guard.
+`guard_experiment_exec` blocks dangerous shell; `guard_submission` blocks Kaggle
+submissions until the leakage gate passes. Never route around either.

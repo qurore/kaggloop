@@ -1,7 +1,7 @@
 """Hypothesis ledger for a kaggloop campaign.
 
 The ledger is the heart of the win-loop: an append-only JSONL file
-(``runs/<id>/hypotheses.jsonl``) where each line is one *critical-to-win*
+(``projects/<name>/hypotheses.jsonl``) where each line is one *critical-to-win*
 hypothesis — a concrete, testable bet about what will move the competition
 score, grounded in the dossier (top notebooks / discussions) and the academic
 literature found via the science MCP servers.
@@ -53,7 +53,7 @@ def _stamp() -> str:
 
 
 def ledger_path(run_id: str) -> Path:
-    return state.run_dir(run_id) / "hypotheses.jsonl"
+    return state.project_dir(run_id) / "hypotheses.jsonl"
 
 
 def load(run_id: str) -> list[dict]:
@@ -123,7 +123,7 @@ def update(run_id: str, hyp_id: str, **fields) -> dict:
             target = r
             break
     if target is None:
-        raise KeyError(f"hypothesis {hyp_id!r} not found in run {run_id}")
+        raise KeyError(f"hypothesis {hyp_id!r} not found in project {run_id}")
     for k, v in fields.items():
         if v is not None:
             target[k] = v
@@ -135,15 +135,15 @@ def update(run_id: str, hyp_id: str, **fields) -> dict:
 # --------------------------------------------------------------------------- CLI
 
 def _resolve(run_id):
-    rid = run_id or state.current_run()
+    rid = run_id or state.current_project()
     if not rid:
-        print("実行中のキャンペーンがありません（--run を指定してください）", file=sys.stderr)
+        print("アクティブなプロジェクトがありません（--name を指定してください）", file=sys.stderr)
         raise SystemExit(2)
     return rid
 
 
 def cmd_add(args) -> int:
-    rid = _resolve(args.run)
+    rid = _resolve(args.name)
     refs = [r for r in (args.refs or "").split(",") if r.strip()]
     rec = add(
         rid,
@@ -160,7 +160,7 @@ def cmd_add(args) -> int:
 
 
 def cmd_update(args) -> int:
-    rid = _resolve(args.run)
+    rid = _resolve(args.name)
     rec = update(
         rid, args.id,
         status=args.status,
@@ -175,7 +175,7 @@ def cmd_update(args) -> int:
 
 
 def cmd_list(args) -> int:
-    rid = _resolve(args.run)
+    rid = _resolve(args.name)
     rows = load(rid)
     if args.proposed:
         rows = [r for r in rows if r.get("status") == "proposed"]
@@ -197,7 +197,7 @@ def main(argv=None) -> int:
     sub = p.add_subparsers(dest="cmd", required=True)
 
     pa = sub.add_parser("add", help="add a hypothesis")
-    pa.add_argument("--run", default=None)
+    pa.add_argument("--name", default=None)
     pa.add_argument("--title", required=True)
     pa.add_argument("--rationale", default="")
     pa.add_argument("--source", default="insight",
@@ -209,7 +209,7 @@ def main(argv=None) -> int:
     pa.set_defaults(func=cmd_add)
 
     pu = sub.add_parser("update", help="update a hypothesis by id")
-    pu.add_argument("--run", default=None)
+    pu.add_argument("--name", default=None)
     pu.add_argument("--id", required=True)
     pu.add_argument("--status", default=None,
                     choices=["proposed", "testing", "kept", "rejected", "blocked"])
@@ -221,7 +221,7 @@ def main(argv=None) -> int:
     pu.set_defaults(func=cmd_update)
 
     pl = sub.add_parser("list", help="list hypotheses by priority")
-    pl.add_argument("--run", default=None)
+    pl.add_argument("--name", default=None)
     pl.add_argument("--proposed", action="store_true", help="only untested (proposed) ones")
     pl.set_defaults(func=cmd_list)
 

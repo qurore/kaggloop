@@ -1,3 +1,23 @@
+# ============================================================================
+#  PROJECTS — per-project working folders (the important toggle)
+# ============================================================================
+# Each project (one competition) is a self-contained folder under projects/ that
+# holds ALL of its code, experiments, submissions, notes, and data. By default
+# the *contents* are gitignored so this PUBLIC repo stays a clean tool, not a
+# dumping ground for competition work and data.
+#
+#   >>> If you keep a PRIVATE fork and WANT to version your projects, delete the
+#       two lines below (`/projects/*` and the negated README). Then your project
+#       folders will be tracked like any other file. <<<
+#
+/projects/*
+!/projects/README.md
+
+# Discovery scratch: scout's lightweight TLDR cards are ephemeral pre-decision
+# artifacts (a chosen competition becomes a real project). Keep the docs/template.
+/competitions/shortlist/*
+!/competitions/shortlist/README.md
+
 # --- Python environment ---
 .venv/
 __pycache__/
@@ -6,7 +26,7 @@ __pycache__/
 .pytest_cache/
 .ipynb_checkpoints/
 
-# --- Campaign artifacts (one dir per competition; never committed) ---
+# --- Legacy / scratch ---
 /runs/
 /data/
 /logs/

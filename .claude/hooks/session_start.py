@@ -49,21 +49,28 @@ def main():
     queue = os.environ.get("KLOOP_COLAB_QUEUE")
     lines.append(f"Colab連携:   {'キュー=' + queue if queue else '既定（.kloop-colab/、Drive同期を推奨）'}")
 
-    # Current campaign, if any.
+    # Current project, if any.
     try:
         sys.path.insert(0, str(REPO))
         from kloop import state  # noqa: E402
-        rid = state.current_run()
-        if rid:
-            st = state.load_state(rid)
+        name = state.current_project()
+        if name:
+            st = state.load_state(name)
             comp = st.get("competition") or "（コンペ未選択）"
+            direction = st.get("metric_direction") or "maximize"
+            actual = st.get("best_lb") if st.get("best_lb") is not None else st.get("best_cv")
+            g = state.gap(st.get("target_score"), actual, direction)
+            gate = "✓合格" if st.get("gate_passed") else "未通過"
+            ndec = len(state.load_decisions(name))
             lines.append(
-                f"現在のキャンペーン: {rid}\n"
-                f"  コンペ={comp}  stage={st.get('stage')}  status={st.get('status')}  "
-                f"iter={st.get('iteration')}  best_cv={st.get('best_cv')}  best_lb={st.get('best_lb')}"
+                f"現在のプロジェクト: {name}\n"
+                f"  コンペ={comp}  stage={st.get('stage')}  status={st.get('status')}  iter={st.get('iteration')}\n"
+                f"  best_cv={st.get('best_cv')}  best_lb={st.get('best_lb')}  "
+                f"target={st.get('target_score')}  gap={('%.4g' % g) if g is not None else '-'}\n"
+                f"  リークゲート={gate}  意思決定ログ={ndec}件（kloop.journal show で確認）"
             )
         else:
-            lines.append("現在のキャンペーン: なし — `/kaggloop` または `/kaggloop-scout` で開始")
+            lines.append("現在のプロジェクト: なし — `/kaggloop` または `/kaggloop-scout` で開始")
     except Exception:
         pass
 

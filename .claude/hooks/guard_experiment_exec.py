@@ -40,6 +40,10 @@ RULES = [
     (r"\bkillall\b|\bpkill\s+-9\b|\bkill\s+-9\s+-1\b", "broad process kill"),
     (r"\.claude/(settings(\.local)?\.json|hooks/)", "modifying Claude Code config / hooks (guard tamper)"),
     (r"\bchmod\s+-R?\s*0?777\b", "world-writable chmod 777"),
+    (r"(?<!>)>(?!>)\s*[^|>]*\b(decisions|progress)\.jsonl",
+     "truncating the append-only audit log — use >> to append, never > to overwrite"),
+    (r"(\brm\b|\bsed\s+-i|\btruncate\b|\bmv\b|:>\s*)[^\n]*\b(decisions|progress)\.jsonl",
+     "deleting/rewriting the append-only decision/progress audit log (observability tamper)"),
 ]
 COMPILED = [(re.compile(p, re.IGNORECASE), why) for p, why in RULES]
 
