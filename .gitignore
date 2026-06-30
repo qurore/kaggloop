@@ -1,0 +1,36 @@
+# --- Python environment ---
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# --- Campaign artifacts (one dir per competition; never committed) ---
+/runs/
+/data/
+/logs/
+
+# --- kaggloop runtime cache + Colab bridge spill ---
+/.kloop-cache/
+/.kloop-colab/
+
+# --- MCP server local data (downloaded papers, never committed) ---
+/.mcp-data/
+
+# --- Secrets & local config ---
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+kaggle.json
+
+# --- Claude Code local (machine-specific) settings ---
+.claude/settings.local.json
+
+# --- OS / editor ---
+.DS_Store
+*.swp
+.idea/
+.vscode/

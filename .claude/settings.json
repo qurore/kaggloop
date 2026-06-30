@@ -1,0 +1,73 @@
+{
+  "env": {
+    "PYTHONUNBUFFERED": "1",
+    "KLOOP_AUTOPILOT": "0",
+    "KLOOP_AUTOPILOT_MAX": "10",
+    "KLOOP_MAX_ITERATIONS": "3",
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(python -m kloop.run:*)",
+      "Bash(python -m kloop.ledger:*)",
+      "Bash(python -m kloop.kaggle list:*)",
+      "Bash(python -m kloop.kaggle files:*)",
+      "Bash(python -m kloop.kaggle kernels:*)",
+      "Bash(python -m kloop.kaggle leaderboard:*)",
+      "Bash(python -m kloop.kaggle submissions:*)",
+      "Bash(python -m kloop.colab status:*)",
+      "Bash(python -m kloop.colab ingest:*)",
+      "Bash(python -m kloop.score:*)",
+      "Bash(.venv/bin/python -m kloop.run:*)",
+      "Bash(.venv/bin/python -m kloop.ledger:*)",
+      "Bash(.venv/bin/python -m kloop.colab status:*)",
+      "Bash(.venv/bin/python -m kloop.score:*)",
+      "Bash(bash scripts/doctor.sh)"
+    ],
+    "deny": []
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/session_start.py\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_experiment_exec.py\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/log_tool_use.py\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/stop_autopilot.py\""
+          }
+        ]
+      }
+    ]
+  }
+}
