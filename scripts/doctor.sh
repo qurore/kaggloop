@@ -30,8 +30,10 @@ if [ -x ".venv/bin/kaggle" ] || command -v kaggle >/dev/null 2>&1; then
 else
   bad "kaggle CLI missing (pip install kaggle / setup.sh)"
 fi
-if [ -f "$HOME/.kaggle/kaggle.json" ]; then
-  ok "kaggle.json present"
+if [ -f "$HOME/.kaggle/access_token" ]; then
+  ok "API access token present (~/.kaggle/access_token — the recommended KGAT_ token)"
+elif [ -f "$HOME/.kaggle/kaggle.json" ]; then
+  ok "kaggle.json present (legacy username/key)"
   perms="$(stat -f '%A' "$HOME/.kaggle/kaggle.json" 2>/dev/null || stat -c '%a' "$HOME/.kaggle/kaggle.json" 2>/dev/null)"
   [ "$perms" = "600" ] && ok "kaggle.json perms 600" || warn "kaggle.json perms $perms (chmod 600 recommended)"
 elif [ -n "${KAGGLE_KEY:-}" ]; then

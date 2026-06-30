@@ -25,8 +25,11 @@ source .venv/bin/activate
 python -m pip install -q --upgrade pip
 
 echo "→ 依存パッケージをインストール中"
+# NOTE: pin kaggle — the current PyPI "latest" (kaggle 2.2.3 + kagglesdk 0.1.32) is a
+# broken pair (ModuleNotFoundError: kagglesdk.competitions.legacy). 1.8.4 + 0.1.31 works
+# and supports the new KGAT_ API access token (~/.kaggle/access_token).
 python -m pip install -q \
-  kaggle \
+  "kaggle==1.8.4" "kagglesdk==0.1.31" \
   numpy pandas scikit-learn \
   requests \
   uv

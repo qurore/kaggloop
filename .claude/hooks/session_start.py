@@ -39,9 +39,11 @@ def main():
     lines.append(f"venv:        {'準備OK' if venv.exists() else '未作成（scripts/setup.sh を実行）'}")
 
     kaggle_ok = _venv_has("kaggle") or _has("kaggle")
-    creds = (Path.home() / ".kaggle" / "kaggle.json").exists() or bool(os.environ.get("KAGGLE_KEY"))
+    creds = ((Path.home() / ".kaggle" / "access_token").exists()
+             or (Path.home() / ".kaggle" / "kaggle.json").exists()
+             or bool(os.environ.get("KAGGLE_KEY")) or bool(os.environ.get("KAGGLE_API_TOKEN")))
     lines.append(f"kaggle CLI:  {'あり' if kaggle_ok else '無し（pip install kaggle）'}"
-                 f" / 認証: {'設定済み' if creds else '未設定（~/.kaggle/kaggle.json）'}")
+                 f" / 認証: {'設定済み' if creds else '未設定（~/.kaggle/access_token）'}")
 
     uvx = _venv_has("uvx") or _has("uvx")
     lines.append(f"科学MCP:     {'uvx あり（arxiv / semantic-scholar）' if uvx else 'uvx 無し（setup.sh）'}")

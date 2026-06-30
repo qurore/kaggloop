@@ -45,6 +45,7 @@ __pycache__/
 *.key
 *.pem
 kaggle.json
+access_token
 
 # --- Claude Code local (machine-specific) settings ---
 .claude/settings.local.json
