@@ -13,6 +13,17 @@ ranked by expected value, recorded in the ledger for the experiment stage to ver
 ## Preconditions
 - `dossier.md` exists; state has `metric`, `metric_direction`, `target_score`.
   `python -m kloop.project set --stage hypothesize --status running`.
+- **MANDATORY FIRST STEP — read the last ≤5 iteration learning journals.** Before forming any
+  bet, read the most recent iteration retrospectives written by `/kaggloop-submit` (newest
+  first) — this is the meta-learning loop that stops us repeating mistakes:
+  ```bash
+  ls -1 projects/<name>/iterations/iter_*.md | sort | tail -5   # newest ≤5
+  ```
+  Read each. They carry, per past iteration: what was done, the predicted vs actual score, the
+  **gap and its verified cause** (grounded in notebooks/discussions/papers/SDK), and an explicit
+  **plan & resolve for the next iteration**. **Explicitly decide** whether to adopt the prior
+  iteration's stated plan (and say why / why not) — do not silently ignore it, and never re-try
+  an approach a past journal already refuted. Carry the confirmed levers forward.
 - **On iterations >0, start from the gap.** Read where the loop stands and *why* it's short:
   ```bash
   python -m kloop.project gap            # how far from target, on cv and lb
@@ -20,7 +31,8 @@ ranked by expected value, recorded in the ledger for the experiment stage to ver
   python -m kloop.ledger list            # what was kept / rejected (don't re-try rejected)
   ```
   Let the gap analysis (the realized CV↔LB behavior, the size and likely source of the
-  remaining gap) **focus** this round's bets on the highest-leverage way to close it.
+  remaining gap) and the iteration journals **focus** this round's bets on the highest-leverage
+  way to close the gap.
 
 ## What makes a good hypothesis here
 - **Critical-to-win, not generic.** Tie it to *this* metric, data, and CV, and to the

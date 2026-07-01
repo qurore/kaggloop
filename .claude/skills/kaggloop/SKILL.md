@@ -40,6 +40,12 @@ part of the system.
    automated — including submission.
 5. **A strict data-leakage quality gate** (Kaggle's classic trap) that is *enforced*: a
    PreToolUse hook blocks any submission until `kloop.gate` passes.
+6. **A meta-learning loop that compounds across iterations:** every submit-cycle writes an
+   explicit retrospective MD to `projects/<name>/iterations/iter_<NNN>_<slug>.md` (what was
+   done · predicted vs actual score · the gap · its *verified* cause with cited sources · the
+   plan & resolve for next). The next iteration's `/kaggloop-hypothesize` **reads the last ≤5
+   first** and decides whether to adopt the prior plan — so the loop never repeats a refuted
+   approach and keeps sharpening. (See `/kaggloop-submit` step 6b and `/kaggloop-hypothesize`.)
 
 ## The win-loop
 

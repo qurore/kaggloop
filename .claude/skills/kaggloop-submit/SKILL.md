@@ -71,6 +71,26 @@ leaderboard says, then **compare to the target and study the gap** to decide the
        --decision "gap <g> remains; likely <cause>" --rationale "<the evidence>"
    ```
 
+6b. **Write the iteration learning journal (MANDATORY — the meta-learning loop).** Every
+   iteration must leave an explicit, human-readable retrospective MD at
+   `projects/<name>/iterations/iter_<NNN>_<slug>.md` (zero-padded, one per submit-cycle). The
+   **next** iteration's `/kaggloop-hypothesize` reads the last ≤5 of these first, so write it to
+   be *useful to your future self*: honest, specific, and grounded. Required sections (in order):
+   ```markdown
+   # iter <N> — <slug>   ·   <date>   ·   version/sub: <…>   ·   LB: <actual or "format-error/pending">
+   ## What was done            # the approach + exact config/knobs changed vs last iter (be concrete)
+   ## Predicted score          # the number you expected BEFORE submitting + how you derived it
+   ## Actual score             # the real LB (traceable to leaderboard.jsonl / Kaggle); "blank COMPLETE"⇒verify it's not a failure
+   ## Gap                      # predicted−actual AND target−actual; was the prediction right?
+   ## Gap investigation        # WHY the gap — verified against real resources: public notebooks
+                               #   (kernel-pull), discussions, the science MCP (arxiv/semantic-scholar),
+                               #   the SDK source, a local harness repro. Cite each. No hand-waving.
+   ## Next iteration — plan & resolve   # the concrete方針 for what to try/investigate next, and why
+   ```
+   Fill every section from real evidence (a predicted-vs-actual number with no derivation, or a
+   cause with no cited source, is a failed journal). This file — not memory — is how the loop
+   compounds learning across iterations.
+
 7. **Loop decision** (journaled as `loop_decision`):
    - **Target met** (`python -m kloop.project gap` shows `target_met: true`): finalize.
      ```bash
