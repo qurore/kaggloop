@@ -30,6 +30,33 @@ result**) → `submit` (**gate → ensemble → submit → study gap → decide*
 `kaggloop` umbrella skill or run stages directly (`/kaggloop-scout` … `/kaggloop-submit`).
 Each `SKILL.md` is authoritative.
 
+## The full loop, end to end (high level)
+
+One pass, skill by skill; the inner loop (2→3→4) repeats until the target is met or the budget
+is spent:
+
+0. **`/kaggloop-scout`** — human picks the competition (URL/slug, or discovery shortlist).
+   Creates the project + `TLDR.md`; you present **go/no-go**. *(The one mandatory human gate.)*
+1. **`/kaggloop-survey`** — build `dossier.md`: exact metric, leakage-safe **CV**, rules/limits;
+   **rank the leaderboard + reverse-engineer the top-scoring notebooks** (trace the working
+   submission format), mine discussions + papers (science MCP); **set `target_score`**.
+2. **`/kaggloop-hypothesize`** — *first read the last ≤5 iteration journals*, then rank
+   critical-to-win, gap-driven bets in the ledger — including **≥1 breakthrough moonshot**.
+3. **`/kaggloop-experiment`** — implement the top bets; run on **Colab** (or reproduce the eval
+   harness locally for code comps); score on the CV; **run the leakage gate on each result**;
+   keep what improves CV leak-free, prune the rest; save OOF/test preds.
+4. **`/kaggloop-submit`** — ensemble the kept models → **pass the leakage gate (enforced)** →
+   submit to Kaggle → record the LB → **study the gap** (`kloop.project gap`) → **write the
+   iteration learning journal** (`iterations/iter_<NNN>_*.md`) → loop decision.
+5. **Loop or finalize.** Gap remains + budget left ⇒ `iteration+1`, back to step 2 focused on the
+   gap (carry kept models + the journal forward). Target met or `KLOOP_MAX_ITERATIONS` spent ⇒
+   finalize with the best submission (remind the user to set the final selection before the
+   deadline).
+
+Every stage **journals its decision**; nothing closes without one. Run it hands-on stage by
+stage, or let `/kaggloop` orchestrate; `KLOOP_AUTOPILOT=1` lets the Stop hook auto-advance and
+loop (never out of scout).
+
 ## Compete to win — every round, by default
 
 The gap-loop is the skeleton; these are the muscles. Do them as a matter of course, not only
