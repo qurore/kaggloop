@@ -137,13 +137,22 @@ does **not** map 1:1. Hard-won rules — follow them to avoid wasting the daily 
    or a small budget). Confirm it produces a **valid output file without raising** — this
    catches structural/format bugs for free instead of on a ~1–3 h hidden rerun.
 4. **Beat the evaluation TIME BUDGET — the #1 cause of "Submission Format Error" here.** The
-   hidden rerun replays your output against the *real* (slow) models under a per-phase wall-clock
-   budget; if it exceeds it the gateway raises and writes **no valid file** → format error (a
+   hidden rerun replays your output against the *real* (slow) models under a **per-phase** wall-clock
+   budget; if any phase exceeds it the gateway raises and writes **no valid file** → format error (a
    *blank* score, not `0.000`). Do **not** hard-code a blind output size. Use **budget-aware
-   verify-and-keep**: run each candidate live during generation, track the slowest one, and stop
-   before the deadline with margin — the kept count then self-adjusts to the model speed, so
-   replay (same items, same speed) can never time out. Minimise per-item tool-hops (terse
-   "do X once, then stop" prompts).
+   verify-and-keep**: run each candidate live during generation, track the slowest one, stop early,
+   and keep only those that fire — the kept count self-sizes to the model's speed.
+   **CRITICAL nuance (this bites even a "safe" verify-and-keep):** *filling to the deadline is NOT
+   safe.* Generation and each replay are **separate per-phase budgets**, and replay runs **once per
+   evaluation slice** (e.g. public AND private guardrail; the private/held-out one can be slower).
+   Because replay re-runs the *same* kept list at ~the same speed, if generation consumes ~the full
+   budget then replay has no headroom and times out. So **fill only a FRACTION of the phase budget**
+   (start ~0.7–0.8) with a generous absolute margin, and use **uniform-timing candidates**
+   (single-action; avoid slow multi-message chains that skew the slowest-time estimate). Minimise
+   per-item tool-hops (terse "do X once, then stop" prompts). *If the eval AVERAGES multiple
+   backends of different speeds, this per-backend self-sizing is exactly what beats a static count
+   (the fast backend fills far more).* Bank a proven-safe **static** submission first, then push the
+   fill fraction up across iterations.
 5. **Submit the notebook** (not a CSV): `kaggle competitions submit -c <comp> -k <user/kernel>
    -v <version> -f <outputfile>`, or the UI **⋮ → Submit to Competition → pick the version**.
    The `guard_submission` gate still applies. A **`403 CreateCodeSubmission`** that persists
@@ -152,6 +161,17 @@ does **not** map 1:1. Hard-won rules — follow them to avoid wasting the daily 
 6. **A `COMPLETE` submission with a *blank* public score is usually a failure, not a zero** —
    check the Submissions page (score vs "Submission Format Error") and the leaderboard before
    recording anything. Never journal a fabricated score.
+7. **Adapt the leakage gate honestly** (it still gates the submit). The mandatory tabular
+   detectors (`train_test_overlap`, `oof_sanity`) need arrays; map them to the comp's *real*
+   overfit risk — usually the **public→private / held-out eval split** — and generate small,
+   truthful artifacts (disjoint dev-vs-holdout ids; a realistic *partial*-success "oof" that is
+   NOT implausibly perfect) so the checks run and pass for real reasons. Affirm the checklist
+   only where genuinely true; never game it.
+8. **Local harness deps + env:** to reproduce the SDK/gateway locally you'll usually need its
+   requirements (`pydantic`, `gymnasium`, `polars`, `pyarrow`, `grpcio`, …) — install them into
+   the project venv. Set realistic **expectations from the leaderboard**: check the top teams'
+   *submission counts* — a big number (dozens+) means an iteration-heavy comp where no one
+   one-shots the target; plan for many tuned submissions, and bank valid scores early.
 
 ## Output to the user
 A scoreboard: this round's submission(s), CV vs public LB, the new `best_lb`, **target vs
