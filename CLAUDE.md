@@ -37,9 +37,11 @@ is spent:
 
 0. **`/kaggloop-scout`** — human picks the competition (URL/slug, or discovery shortlist).
    Creates the project + `TLDR.md`; you present **go/no-go**. *(The one mandatory human gate.)*
-1. **`/kaggloop-survey`** — build `dossier.md`: exact metric, leakage-safe **CV**, rules/limits;
-   **rank the leaderboard + reverse-engineer the top-scoring notebooks** (trace the working
-   submission format), mine discussions + papers (science MCP); **set `target_score`**.
+1. **`/kaggloop-survey`** — **read every competition tab thoroughly, broad-first**
+   (Overview/Data/**Code**/**Discussion**/**Rules**/Leaderboard); build `dossier.md`: exact
+   metric, leakage-safe **CV**, rules/limits; **rank the leaderboard + reverse-engineer the
+   top-scoring notebooks** (trace the working submission format), mine discussions + papers
+   (science MCP); **set `target_score`**.
 2. **`/kaggloop-hypothesize`** — *first read the last ≤5 iteration journals*, then rank
    critical-to-win, gap-driven bets in the ledger — including **≥1 breakthrough moonshot**.
 3. **`/kaggloop-experiment`** — implement the top bets; run on **Colab** (or reproduce the eval
@@ -62,6 +64,10 @@ loop (never out of scout).
 The gap-loop is the skeleton; these are the muscles. Do them as a matter of course, not only
 when asked:
 
+- **At a new competition, read everything first.** Thoroughly read **every tab** — Overview,
+  **Data**, **Code**, **Discussion**, **Rules** (+ Leaderboard) — and investigate **broadly**
+  before you narrow. Wide-first reading is the cheapest, richest signal and prevents expensive
+  mistakes later; fan out with sub-agents when there's a lot to cover.
 - **Read the board, then reverse-engineer the winners.** Each round, pull the leaderboard and
   study the **highest-scoring** and most-recent public notebooks + discussions — ranked by
   *score*, not just votes (cross-reference top-LB teams with their public kernels/working-notes).

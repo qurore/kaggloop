@@ -14,12 +14,23 @@ to reach.
 
 ## Procedure
 
-1. **Competition internals.** WebFetch the `/overview`, `/overview/evaluation`, `/data`,
-   `/rules` pages (and use `python -m kloop.kaggle files <comp>` if creds are set). Record:
-   exact **metric** + precise definition, submission format, **external-data policy**,
-   allowed frameworks, **code-competition** constraints, team and **daily submission**
-   limits, deadline. Note data shapes, target distribution, id/group columns, time
-   ordering, leakage risks. Save raw metadata to `projects/<name>/competition.json`.
+1. **Read the WHOLE competition first — every tab, thoroughly, broad before deep.** At the
+   start you invest in wide reading; it is the cheapest, richest signal and prevents expensive
+   mistakes later. Read **every** tab — don't skip any:
+   - **Overview** (+ `/overview/evaluation`) — the task, the **exact metric** + precise definition.
+   - **Data** — files, shapes, target distribution, id/group columns, time ordering, leakage
+     risks (`python -m kloop.kaggle files <comp>`; download only what's needed, keep in `data/`).
+   - **Code** — the public notebooks (`python -m kloop.kaggle kernels <comp>`), incl. the
+     getting-started / official harness; for code/SDK-harness comps **trace the working
+     submission format** (deep-mined in step 4).
+   - **Discussion** — read broadly (WebFetch `/discussion`): pinned/host posts, insights,
+     pitfalls, leak warnings, magic features, score deltas, format/timeout gotchas.
+   - **Rules** — **external-data policy**, allowed frameworks, **code-competition** constraints,
+     team & **daily submission** limits, **eligibility** (e.g. identity verification), deadline.
+   - **Leaderboard** — the score distribution + top teams (feeds the target and step 4).
+
+   Record the essentials to `projects/<name>/competition.json`. Investigate broadly here; go
+   wide first, then deep. When there's a lot to cover, fan out with **sub-agents** (per tab).
 
 2. **Define a leakage-safe local CV — the most important design choice.** Pick a CV that
    *matches the metric and the competition's split*: stratified / **GroupKFold by entity** /
