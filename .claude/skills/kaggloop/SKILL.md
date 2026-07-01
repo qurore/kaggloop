@@ -31,8 +31,10 @@ part of the system.
 
 ## What else makes it different
 
-1. **Exploratory & hypothesis-driven (AI-Scientist-v2 style):** ranked, testable bets,
-   verified by real CV, kept/pruned on evidence.
+1. **Exploratory & hypothesis-driven (AI-Scientist-v2 style) — the highest-leverage stage:**
+   the competition is won or lost on the quality of the bets, so each loop *begins* by refreshing
+   the reconnaissance (`recon.md`) and turning it into ranked, testable bets — verified by real
+   CV, kept/pruned on evidence.
 2. **Science-backed:** `arxiv` + `semantic-scholar` MCP ground hypotheses in real papers,
    alongside the competition's own top notebooks and discussions.
 3. **Claude Code ecosystem only:** Skills + Hooks.
@@ -43,9 +45,16 @@ part of the system.
 6. **A meta-learning loop that compounds across iterations:** every submit-cycle writes an
    explicit retrospective MD to `projects/<name>/iterations/iter_<NNN>_<slug>.md` (what was
    done · predicted vs actual score · the gap · its *verified* cause with cited sources · the
-   plan & resolve for next). The next iteration's `/kaggloop-hypothesize` **reads the last ≤5
-   first** and decides whether to adopt the prior plan — so the loop never repeats a refuted
-   approach and keeps sharpening. (See `/kaggloop-submit` step 6b and `/kaggloop-hypothesize`.)
+   plan & resolve for next), and every loop's `/kaggloop-hypothesize` refreshes and **prepends to
+   the cumulative recon log** `projects/<name>/recon.md` (dated board/notebook/discussion/paper
+   intel). The next iteration **reads the last ≤5 journals + `recon.md` first** and decides whether
+   to adopt the prior plan — so the loop never repeats a refuted approach and keeps sharpening.
+   (See `/kaggloop-submit` step 6b and `/kaggloop-hypothesize`.)
+7. **Parallel recon by default:** wide research (survey's broad read; every loop's re-recon) fans
+   out as concurrent **read-only sub-agents** — one per axis (notebooks · discussions ·
+   literature) — each briefed on the current gap + prior recon and returning a ≤15-bullet,
+   ref-backed digest that synthesis merges into `recon.md`. (See `/kaggloop-hypothesize` →
+   "Parallel recon protocol".)
 
 ## The win-loop
 
@@ -53,7 +62,7 @@ part of the system.
 |------:|-------|--------|:------:|
 | 0. Scout       | `/kaggloop-scout`       | a project + `projects/<name>/TLDR.md` (or a discovery shortlist) | **picks** |
 | 1. Survey      | `/kaggloop-survey`      | `dossier.md`, CV scheme, **`target_score`** | auto |
-| 2. Hypothesize | `/kaggloop-hypothesize` | ranked `hypotheses.jsonl` (gap-focused) | auto |
+| 2. Hypothesize | `/kaggloop-hypothesize` | **re-recon (`recon.md`)** → ranked `hypotheses.jsonl` (gap-focused) | auto |
 | 3. Experiment  | `/kaggloop-experiment`  | Colab results, CV, OOF preds, **per-experiment leakage checks** | auto |
 | 4. Submit      | `/kaggloop-submit`      | **gate verify** → ensemble → Kaggle submit → LB → **gap decision** | auto |
 
@@ -72,8 +81,9 @@ Inner loop **2 → 3 → 4 → 2** repeats until the target is met or the budget
 ## Project layout (one self-contained folder per competition)
 
 `projects/<name>/` holds **everything**: `state.json` (source of truth) · `README.md`
-(lab notebook) · `TLDR.md` · `dossier.md` · `hypotheses.jsonl` · `progress.jsonl`
-(target-vs-actual history) · `gate.json` + `gate_checks.json` (leakage gate) ·
+(lab notebook) · `TLDR.md` · `dossier.md` · `recon.md` (cumulative per-loop recon log) ·
+`hypotheses.jsonl` · `progress.jsonl` (target-vs-actual history) · `gate.json` +
+`gate_checks.json` (leakage gate) ·
 `code/` (all implementation + verification code) · `experiments/{jobs,results,plots}` ·
 `submissions/` (+`leaderboard.jsonl`) · `notes/` · `data/`. See `projects/README.md` for
 the layout and the **gitignore toggle** (project contents are gitignored by default so the
