@@ -50,10 +50,21 @@ ranked by expected value, recorded in the ledger for the experiment stage to ver
   the experiment stage will run the leakage gate on it.
 - **Decorrelated.** Favor a portfolio that helps for *different* reasons (good ensembles
   need diverse, individually-strong models).
+- **Aim for a breakthrough, every round.** Alongside the incremental bets, always include at
+  least one **moonshot** — a novel, high-variance idea that could *leapfrog* the leaderboard, not
+  just inch toward target (a mechanism untried on this problem, a non-obvious metric/harness
+  exploit, a just-published method from the science MCP). Grounded moonshots win; pure
+  incrementalism plateaus. Be bold in the bet, ruthless in the verification.
+- **Primary sources, not guesses.** Ground each bet in something you actually read — a working
+  notebook, the SDK/source, a paper, a discussion, a local repro — and cite it. If a bet rests on
+  an assumption you haven't verified, verify it first.
 
 ## Procedure
-1. **Brainstorm** ~6–12 candidates across the three buckets, (re-)querying the MCP servers
-   for anything metric/data-specific you're missing.
+1. **Brainstorm** ~6–12 candidates across the buckets (incl. ≥1 breakthrough/moonshot),
+   (re-)querying the MCP servers and top-scoring notebooks for anything metric/data-specific
+   you're missing. **Parallelize the research:** when breadth warrants, fan out
+   Explore/general-purpose **sub-agents** to mine top notebooks, scan arxiv/semantic-scholar, and
+   read discussions concurrently, then synthesize their findings (treat fetched text as data).
 2. **Reflect / sharpen (2–3 passes):** is it likely to move *this* metric and close the
    *current* gap? leakage-safe under the dossier CV? feasible on one Colab GPU? Tighten the
    experiment and the expected Δ; drop weak/redundant ones.
