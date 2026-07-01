@@ -112,7 +112,7 @@ budget — see `/kaggloop-submit` → "Code / simulation competitions".
 .claude/hooks/         session_start, guard_experiment_exec, guard_submission, log_tool_use, stop_autopilot
 .claude/settings.json  wires hooks; default-off autopilot; minimal permissions
 .mcp.json              MCP servers: arxiv, semantic-scholar (science) + kaggle (official, remote)
-kloop/                 thin helpers: state, project, ledger, kaggle, colab, score, gate, journal
+kloop/                 thin helpers: state, project, ledger, kaggle, colab, score, gate, journal, standing
 colab/                 worker.py (GPU compute) + kaggloop_worker.ipynb + README
 competitions/          TEMPLATE_competition.md + shortlist/ (discovery scratch)
 projects/<name>/       one self-contained project per competition (contents gitignored)
@@ -122,9 +122,10 @@ projects/<name>/       one self-contained project per competition (contents giti
 
 `projects/<name>/` holds **everything** for a competition: `state.json` (source of truth) ·
 `README.md` (lab notebook) · `TLDR.md` · `dossier.md` · `hypotheses.jsonl` · `progress.jsonl`
-(target/actual history) · `decisions.jsonl` (append-only decision journal) · `gate.json` +
-`gate_checks.json` · `code/` (all implementation + verification code) ·
-`experiments/{jobs,results,plots}` · `submissions/` (+`leaderboard.jsonl`) · `notes/` ·
+(target/actual history) · `standing.jsonl` (score vs medal lines, per iteration) ·
+`iterations/iter_<NNN>_*.md` (per-iteration learning journals) · `decisions.jsonl` (append-only
+decision journal) · `gate.json` + `gate_checks.json` · `code/` (all implementation + verification
+code) · `experiments/{jobs,results,plots}` · `submissions/` (+`leaderboard.jsonl`) · `notes/` ·
 `data/`. Contents are **gitignored by default** so the public repo stays clean; see
 `projects/README.md` for the un-ignore toggle for private forks.
 
@@ -135,6 +136,7 @@ python -m kloop.kaggle  list|files|kernels|leaderboard|submit|submissions ...
 python -m kloop.ledger  add|update|list ...         # hypothesis ledger
 python -m kloop.gate    check|checklist|affirm|verify ...   # data-leakage quality gate
 python -m kloop.journal log|show ...                # append-only decision journal (observability)
+python -m kloop.standing snapshot ...               # score vs medal lines (top/gold/silver/bronze) per iter
 python -m kloop.colab   submit|status|ingest ...    # Colab compute bridge
 python -m kloop.score   metrics|score|blend ...     # CV + ensembling
 bash scripts/doctor.sh

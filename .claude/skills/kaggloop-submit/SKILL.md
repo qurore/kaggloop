@@ -62,9 +62,14 @@ leaderboard says, then **compare to the target and study the gap** to decide the
 6. **Study the gap (the core of the loop).** Compare actual to target and analyze *why*:
    ```bash
    python -m kloop.project gap --log     # appends target vs actual to progress.jsonl
+   python -m kloop.standing snapshot --note "iter<N>: <sub>"   # append our score vs the live
+       # medal landscape (top score + gold/silver/bronze cutoff scores, our rank & medal) to
+       # projects/<name>/standing.jsonl — one stacked record per iteration. Pass --name when
+       # multiple projects run concurrently (current_project is a shared cache).
    ```
-   Did LB move with CV? Is the gap from underfitting, a CV↔LB mismatch (shake-up / leakage
-   / distribution shift), or a metric/post-processing miss? **Never overfit to the public
+   Read the standing: how far is our realized score from the **bronze/silver/gold lines** and
+   from `top`? Did LB move with CV? Is the gap from underfitting, a CV↔LB mismatch (shake-up /
+   leakage / distribution shift), or a metric/post-processing miss? **Never overfit to the public
    LB** — trust CV. Journal the analysis (required to close the stage):
    ```bash
    python -m kloop.journal log --kind gap_analysis \
