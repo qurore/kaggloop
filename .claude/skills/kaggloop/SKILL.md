@@ -93,6 +93,14 @@ No GPU here (macOS). Training runs on **Google Colab** via the filesystem bridge
 you ingest them. Keep the local side cheap; push heavy training to Colab. See
 `colab/README.md`.
 
+**Code / simulation competitions** (submission is code + a shipped SDK/eval harness, not a
+CSV — e.g. red-team/agent comps) are the exception: the compute is Kaggle's own hidden
+**notebook rerun**, not Colab. Adapt the experiment/submit stages — *copy a currently-working
+public notebook's submission plumbing first, reproduce the eval gateway locally before every
+submit, and design against its per-phase time budget with budget-aware verify-and-keep* (a
+blind/static output size times out → "Submission Format Error"). Full playbook in
+`/kaggloop-submit` → "Code / simulation competitions".
+
 ## Operating principles
 
 - **Trust local CV, not the public LB.** Build a CV matching the metric and the

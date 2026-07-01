@@ -88,6 +88,51 @@ leaderboard says, then **compare to the target and study the gap** to decide the
    - **Budget spent, target unmet:** finalize honestly with the best submission and the gap
      recorded.
 
+## Code / simulation competitions (submission = a notebook, not a CSV) — READ FIRST
+
+If the competition ships an **SDK / evaluation harness** in its data and you submit *code*
+(an `attack.py`, an agent, a policy) rather than a `submission.csv`, the tabular flow above
+does **not** map 1:1. Hard-won rules — follow them to avoid wasting the daily submission cap:
+
+1. **Copy a currently-working, recently-scored public notebook's submission mechanics BEFORE
+   writing your own.** Pull the top *non-stale* notebook (`kernel-pull`), read the `serve()` /
+   output cells, and match them exactly. Reinventing the harness plumbing from the SDK alone
+   is how you burn submissions on avoidable errors. (Verify scoring facts against the SDK, but
+   copy the *plumbing* from a notebook that actually scored.)
+2. **The version must OUTPUT the required file.** Kaggle re-runs your notebook privately with
+   the hidden test set and extracts your output file (e.g. `submission.csv`). On a normal
+   commit your code must still write that file or the version is **not submittable**
+   ("does not output this file"). Standard pattern: write a valid placeholder, then run the
+   eval server only under the rerun flag:
+   ```python
+   open("/kaggle/working/submission.csv","w").write("Id,Score\n...expected rows...,0.0\n")
+   import ...inference_server as server
+   if os.getenv("KAGGLE_IS_COMPETITION_RERUN"):
+       server.<InferenceServer>().serve()   # blocks; the gateway writes the real file
+   ```
+   Notebook config: attach the competition dataset (`competition_sources`), GPU if the hidden
+   models need it (T4), `enable_internet:false`. The notebook `id`'s slug must match the title.
+3. **Reproduce the eval gateway LOCALLY with a fast/deterministic backend before every
+   submission** (`run_local_gateway` / the SDK's local evaluate, `MODEL_NAMES=deterministic`
+   or a small budget). Confirm it produces a **valid output file without raising** — this
+   catches structural/format bugs for free instead of on a ~1–3 h hidden rerun.
+4. **Beat the evaluation TIME BUDGET — the #1 cause of "Submission Format Error" here.** The
+   hidden rerun replays your output against the *real* (slow) models under a per-phase wall-clock
+   budget; if it exceeds it the gateway raises and writes **no valid file** → format error (a
+   *blank* score, not `0.000`). Do **not** hard-code a blind output size. Use **budget-aware
+   verify-and-keep**: run each candidate live during generation, track the slowest one, and stop
+   before the deadline with margin — the kept count then self-adjusts to the model speed, so
+   replay (same items, same speed) can never time out. Minimise per-item tool-hops (terse
+   "do X once, then stop" prompts).
+5. **Submit the notebook** (not a CSV): `kaggle competitions submit -c <comp> -k <user/kernel>
+   -v <version> -f <outputfile>`, or the UI **⋮ → Submit to Competition → pick the version**.
+   The `guard_submission` gate still applies. A **`403 CreateCodeSubmission`** that persists
+   after the gate usually means the account needs **identity verification** (Persona,
+   phone/webcam) — a human-only KYC step: surface it to the user and do not attempt it.
+6. **A `COMPLETE` submission with a *blank* public score is usually a failure, not a zero** —
+   check the Submissions page (score vs "Submission Format Error") and the leaderboard before
+   recording anything. Never journal a fabricated score.
+
 ## Output to the user
 A scoreboard: this round's submission(s), CV vs public LB, the new `best_lb`, **target vs
 actual and the gap**, the CV↔LB read, and the decision (loop with the plan, or finalize). If

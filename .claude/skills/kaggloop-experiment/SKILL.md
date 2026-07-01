@@ -83,6 +83,19 @@ python -m kloop.project set --stage experiment --status done --note "round <iter
 Output to the user: kept/rejected with CV deltas + gate status, the new `best_cv`, and which
 OOF sets are ready to ensemble. Offer `/kaggloop-submit`.
 
+## Code / simulation competitions (submission is code, not a CSV)
+If the comp ships an **SDK / evaluation harness** and you submit code (an attack/agent/policy):
+- **Reproduce the eval harness locally first** with a fast/deterministic backend (the SDK's
+  local evaluate or `run_local_gateway`, `MODEL_NAMES=deterministic` / a tiny budget). Your
+  "CV" is (a) offline unit-tests of the exact scoring/predicate code and (b) that the harness
+  produces a **valid output file without raising**. A live LLM backend may be unavailable
+  locally, so treat local runs as *structural* checks; the real score needs the hidden rerun.
+- The hidden rerun replays your output against the **real (slow) models under a per-phase time
+  budget** — a blind/static output size **times out → "Submission Format Error"**. Design for
+  it here: **budget-aware verify-and-keep** (run each candidate live, track the slowest, stop
+  before the deadline) so the workload self-limits; minimise per-item tool-hops. See
+  `/kaggloop-submit` → "Code / simulation competitions" for the full submission mechanics.
+
 ## Notes
 - The PreToolUse guard blocks dangerous shell and protects the append-only journal; keep all
   I/O under `projects/<name>/` and never touch `kaggle.json`.
