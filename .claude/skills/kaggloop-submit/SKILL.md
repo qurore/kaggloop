@@ -1,6 +1,6 @@
 ---
 name: kaggloop-submit
-description: Stage 4 of the kaggloop win-loop — finalize the round by ensembling the kept models, passing the strict data-leakage gate (enforced before any submission), submitting to Kaggle via the API, recording the public leaderboard score, then comparing the actual score to the target and deciding whether to loop again to close the gap. Use after experiment. Output a submission, a leaderboard.jsonl + progress.jsonl entry, and a loop/stop decision.
+description: Stage 4 of the kaggloop win-loop — finalize the round by ensembling the kept models, passing the strict data-leakage gate (enforced before any submission), submitting to Kaggle via the API, recording the public leaderboard score, comparing the actual score to the target, running the results-driven pipeline self-improvement pass (skills/hooks/CLAUDE.md may be upgraded only when the realized score improved), and deciding whether to loop again to close the gap. Use after experiment. Output a submission, a leaderboard.jsonl + progress.jsonl entry, a self-improvement log entry, and a loop/stop decision.
 ---
 
 # Stage 4 — Submit (gate → ensemble → submit → study the gap → decide)
@@ -13,6 +13,38 @@ leaderboard says, then **compare to the target and study the gap** to decide the
 - `kept` hypotheses with OOF + test predictions under `experiments/results/`.
   `python -m kloop.project set --stage submit --status running`. A submission-format
   reference from the dossier.
+
+## Judged competitions (no CSV — the judge-rubric gate, enforced) — READ FIRST
+
+If survey set `scoring_mode` = `judged` / `hybrid` (a human-scored **Writeup**; no leaderboard),
+the tabular flow below (ensemble → leakage gate → `kaggle submit` CSV) does **not** apply. Instead:
+
+1. **Assemble the final deliverable** — the ≤word-limit **Kaggle Writeup** + its required
+   attachments (media/figures, and for an agent challenge the agent/deck it documents), matching
+   the Submission Requirements exactly.
+2. **Judge-rubric gate (enforced — replaces the leakage gate).** Run a final **blind, adversarial**
+   judging pass over the assembled deliverable against `judge_rubric.json`; write
+   `judge/iter_<NNN>.json` (per-sub-criterion scores + quoted evidence + weighted total). Record
+   the realized score and study the gap on it:
+   ```bash
+   python -m kloop.project set --best-lb <judged_total> --best-submission <writeup/draft path> \
+       --note "iter<N> judged=<total>/100"
+   python -m kloop.project gap --log        # target(rubric) vs judged actual — the compass
+   python -m kloop.journal log --kind gate --decision "judge-rubric gate: judged=<total>/100" \
+       --rationale "scored vs fixed anchors; weakest crit <c>=<...>; evidence in judge/iter_<NNN>.json"
+   ```
+   **Do not finalize** without a primary-source `judge_rubric.json` **and** a fresh
+   `judge/iter_<NNN>.json` for this iteration — that is the enforced quality gate for judged comps.
+3. **The human submits the Writeup on the Kaggle website** (New Writeup → attach assets → pick a
+   Track → **Submit**) before the deadline — the one manual gate (like scout). There is no
+   `kaggle submit` CSV and `guard_submission` does not fire; **never** fabricate a leaderboard
+   number for a judged comp.
+4. **Then continue at 6b/6c/7 below** — write the mandatory **iteration journal** (predicted vs
+   judged, the per-criterion gap + its cause with cited sources, next plan), run the
+   **results-driven self-improvement pass** (the judged rubric total recorded via `--best-lb`
+   feeds `kloop.selfimprove check` exactly like a leaderboard score), and make the loop
+   decision on the judged gap: loop back to `hypothesize` on the weakest-weighted criteria, or
+   finalize when the target rubric score is met or the budget is spent.
 
 ## Procedure
 
@@ -95,6 +127,44 @@ leaderboard says, then **compare to the target and study the gap** to decide the
    Fill every section from real evidence (a predicted-vs-actual number with no derivation, or a
    cause with no cited source, is a failed journal). This file — not memory — is how the loop
    compounds learning across iterations.
+
+6c. **Pipeline self-improvement (results-driven — the CHECK runs every loop, the EDIT only on
+   real improvement).** The pipeline upgrades itself, but strictly on 結果主義: only a *realized*
+   score improvement can trigger edits. After `gap --log` (and the iteration journal), run:
+   ```bash
+   python -m kloop.selfimprove check      # pass --name when multiple projects run concurrently
+   ```
+   - **`improved: false` → touch nothing.** Log the skip and move on:
+     `python -m kloop.selfimprove log --action no_improvement --analysis "<1 line why>"`.
+     If the *previous* loop's entry (`kloop.selfimprove list`) shows pipeline edits and this
+     round regressed, treat them as regression suspects: restore the prior content (`git diff` /
+     `git checkout -- <file>`, or Edit back) and log `--action reverted`.
+   - **`improved: true` (especially `significant: true`) → success retrospective first.** From
+     the ledger, `experiments/results/` and the journal, identify *which bet/lever caused the
+     delta* (cite the evidence) and add a short "What worked & why" note to this iteration's
+     journal (6b). Then ask: **is there a generalizable *process* lesson** — something that would
+     help *any* competition, not just this one? Competition-specific tricks stay in `recon.md` /
+     the journal, never in the shared pipeline.
+   - **If a generalizable lesson exists, edit the pipeline directly** — `.claude/skills/**`,
+     `.claude/hooks/**`, `CLAUDE.md` — via the Edit/Write tools (pre-authorized; no approval
+     prompt). Read `kloop.selfimprove list` first so you never silently re-apply an idea a past
+     loop reverted. Keep diffs small and surgical; preserve each SKILL.md's frontmatter.
+     **Invariants you may never weaken:** the scout human gate, `guard_submission`'s
+     gate-before-submit enforcement, the leakage / judge-rubric gate requirements, journal
+     append-only enforcement, autopilot bounds, "never fabricate scores".
+   - **After editing any hook:** `python -m kloop.selfimprove hookcheck` must pass (syntax +
+     smoke-run of every hook). A broken hook is worse than no improvement — restore immediately
+     if it fails. New hooks need `settings.json` wiring, which is out of self-edit scope:
+     propose that to the human via the journal instead.
+   - **Log the outcome — mandatory every loop, whatever happened:**
+     ```bash
+     python -m kloop.selfimprove log --action improved_and_changed \
+         --analysis "<what worked + the distilled lesson>" --files "<comma-separated files>" \
+         --rationale "<why it generalizes>" --delta <delta> --gap-closed-frac <frac>
+     python -m kloop.journal log --kind self_improve --decision "<changed X | no change | skip>" \
+         --rationale "<evidence>"
+     ```
+     (`--action improved_no_change` when the score improved but nothing generalizable emerged.)
 
 7. **Loop decision** (journaled as `loop_decision`):
    - **Target met** (`python -m kloop.project gap` shows `target_met: true`): finalize.
@@ -180,8 +250,9 @@ does **not** map 1:1. Hard-won rules — follow them to avoid wasting the daily 
 
 ## Output to the user
 A scoreboard: this round's submission(s), CV vs public LB, the new `best_lb`, **target vs
-actual and the gap**, the CV↔LB read, and the decision (loop with the plan, or finalize). If
-the competition is still open, remind the user to set their **final submission selection**
+actual and the gap**, the CV↔LB read, the **self-improvement outcome** (files changed +
+lesson, or "no improvement → no change"), and the decision (loop with the plan, or finalize).
+If the competition is still open, remind the user to set their **final submission selection**
 before the deadline.
 
 ## Notes
@@ -189,3 +260,6 @@ before the deadline.
 - Submitting acts on the user's real Kaggle account; submit only the intended candidate,
   within the daily limit and the rules. Every LB number must come from a real submission in
   `leaderboard.jsonl` — never invent one.
+- Self-improvement is results-gated: no realized score improvement ⇒ no pipeline edits, ever.
+  Every check/edit/skip/revert is recorded in `.claude/self-improvements.jsonl` (append-only)
+  plus a `self_improve` journal entry, so the pipeline's own evolution stays auditable.

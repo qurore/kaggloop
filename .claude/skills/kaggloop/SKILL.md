@@ -50,7 +50,17 @@ part of the system.
    intel). The next iteration **reads the last ≤5 journals + `recon.md` first** and decides whether
    to adopt the prior plan — so the loop never repeats a refuted approach and keeps sharpening.
    (See `/kaggloop-submit` step 6b and `/kaggloop-hypothesize`.)
-7. **Parallel recon by default:** wide research (survey's broad read; every loop's re-recon) fans
+7. **The pipeline improves ITSELF — results-driven (結果主義):** the tail of every
+   `/kaggloop-submit` runs `python -m kloop.selfimprove check` (did this round's *realized* score
+   beat the previous loops' best?). **Only on a real improvement** does the agent analyze what
+   worked and — when a generalizable process lesson exists — directly upgrade the shared pipeline
+   (`.claude/skills/**`, `.claude/hooks/**`, `CLAUDE.md`; pre-authorized, no approval prompt),
+   logging every change or skip to the append-only `.claude/self-improvements.jsonl` and
+   reverting edits that a later round shows to regress. No improvement ⇒ no pipeline edits.
+   Enforced invariants never weaken: the scout human gate, `guard_submission`, the leakage /
+   judge-rubric gates, journal append-only, autopilot bounds. After any hook edit,
+   `python -m kloop.selfimprove hookcheck` must pass. (See `/kaggloop-submit` step 6c.)
+8. **Parallel recon by default:** wide research (survey's broad read; every loop's re-recon) fans
    out as concurrent **read-only sub-agents** — one per axis (notebooks · discussions ·
    literature) — each briefed on the current gap + prior recon and returning a ≤15-bullet,
    ref-backed digest that synthesis merges into `recon.md`. (See `/kaggloop-hypothesize` →
@@ -64,7 +74,7 @@ part of the system.
 | 1. Survey      | `/kaggloop-survey`      | `dossier.md`, CV scheme, **`target_score`** | auto |
 | 2. Hypothesize | `/kaggloop-hypothesize` | **re-recon (`recon.md`)** → ranked `hypotheses.jsonl` (gap-focused) | auto |
 | 3. Experiment  | `/kaggloop-experiment`  | Colab results, CV, OOF preds, **per-experiment leakage checks** | auto |
-| 4. Submit      | `/kaggloop-submit`      | **gate verify** → ensemble → Kaggle submit → LB → **gap decision** | auto |
+| 4. Submit      | `/kaggloop-submit`      | **gate verify** → ensemble → Kaggle submit → LB → **gap decision** → **self-improve pass** | auto |
 
 Inner loop **2 → 3 → 4 → 2** repeats until the target is met or the budget is spent.
 
@@ -123,6 +133,11 @@ blind/static output size times out → "Submission Format Error"). Full playbook
   competition's split; the LB is a small noisy validation set. The target/gap is on the
   realized score, but CV is what you optimize.
 - **Pass the leakage gate before every submission.** It is enforced; never bypass it.
+- **Judged (no-leaderboard) comps run the same loop on an LLM-as-Judge rubric.** If a competition
+  isn't auto-scored (a human-judged writeup / analytics / "strategy" comp), survey **must** build
+  a rigorous, quantitative judge rubric from primary sources + real exemplars, and the loop
+  optimizes the **judged score** (you are the judge — no external API). It is enforced in place of
+  the leakage gate; see CLAUDE.md → "Judged competitions" and the survey/experiment/submit skills.
 - **Never fabricate** scores or citations: every CV number traces to a file under
   `experiments/results/`, every LB number to `submissions/leaderboard.jsonl`.
 - **Play by the rules** (external-data policy, frameworks, code-comp limits, daily
@@ -132,4 +147,7 @@ blind/static output size times out → "Submission Format Error"). Full playbook
 ## Safety (enforced by hooks)
 
 `guard_experiment_exec` blocks dangerous shell; `guard_submission` blocks Kaggle
-submissions until the leakage gate passes. Never route around either.
+submissions until the leakage gate passes. Never route around either. Pipeline
+self-improvement edits (skills/hooks/CLAUDE.md) are results-gated and go through the
+Edit/Write tools only — shell rewrites of hooks/config stay blocked as tamper, and any
+edited hook must pass `python -m kloop.selfimprove hookcheck` before the round closes.

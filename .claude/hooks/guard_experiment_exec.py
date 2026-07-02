@@ -38,12 +38,21 @@ RULES = [
      "installing a persistence mechanism"),
     (r"(^|[\s;&|])(>|>>)\s*/etc/|tee\s+/etc/", "writing into /etc"),
     (r"\bkillall\b|\bpkill\s+-9\b|\bkill\s+-9\s+-1\b", "broad process kill"),
-    (r"\.claude/(settings(\.local)?\.json|hooks/)", "modifying Claude Code config / hooks (guard tamper)"),
+    # Shell WRITES to Claude Code config / hooks are tamper. Read-only inspection
+    # (ls/cat/git diff/py_compile) is fine, and sanctioned results-driven pipeline
+    # self-improvement edits go through the Edit/Write tools (visible diffs,
+    # permission-ruled) — never through shell rewrites.
+    (r"(?:\brm\b|\bmv\b|\bcp\b|\bln\b|\bsed\s+-[a-z]*i|\bperl\s+-[a-z]*i|\btee\b"
+     r"|\btruncate\b|\bchmod\b|\bchown\b|>{1,2})[^\n|;&]*\.claude/(settings(\.local)?\.json|hooks/)",
+     "shell-writing Claude Code config / hooks (guard tamper) — pipeline self-improvement "
+     "edits must go through the Edit/Write tools, and hooks must pass "
+     "`python -m kloop.selfimprove hookcheck` afterwards"),
     (r"\bchmod\s+-R?\s*0?777\b", "world-writable chmod 777"),
-    (r"(?<!>)>(?!>)\s*[^|>]*\b(decisions|progress)\.jsonl",
+    (r"(?<!>)>(?!>)\s*[^|>]*\b(decisions|progress|self-improvements)\.jsonl",
      "truncating the append-only audit log — use >> to append, never > to overwrite"),
-    (r"(\brm\b|\bsed\s+-i|\btruncate\b|\bmv\b|:>\s*)[^\n]*\b(decisions|progress)\.jsonl",
-     "deleting/rewriting the append-only decision/progress audit log (observability tamper)"),
+    (r"(\brm\b|\bsed\s+-i|\btruncate\b|\bmv\b|:>\s*)[^\n]*\b(decisions|progress|self-improvements)\.jsonl",
+     "deleting/rewriting the append-only decision/progress/self-improvement audit log "
+     "(observability tamper)"),
 ]
 COMPILED = [(re.compile(p, re.IGNORECASE), why) for p, why in RULES]
 

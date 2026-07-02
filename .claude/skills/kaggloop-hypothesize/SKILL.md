@@ -62,6 +62,12 @@ ranked by expected value, recorded in the ledger for the experiment stage to ver
   Let the gap analysis (the realized CV↔LB behavior, the size and likely source of the
   remaining gap) and the iteration journals **focus** this round's bets on the highest-leverage
   way to close the gap.
+- **Judged / no-leaderboard comps (judge-rubric mode).** The "score" is the **judge-rubric
+  total** and the gap is **per rubric criterion**. Read `judge_rubric.json` + the latest
+  `judge/iter_<NNN>.json` breakdown, and aim each bet at the **weakest-weighted** sub-criteria
+  (largest `weight × deficit-to-anchor`). A bet here is a concrete change to the deliverable /
+  agent that should lift a *named* sub-criterion to a higher anchor level — grounded in an
+  exemplar / discussion / paper that shows why (still keep ≥1 breakthrough moonshot).
 
 ## The recon log (`recon.md`) — structure
 

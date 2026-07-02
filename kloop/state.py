@@ -20,6 +20,7 @@ reproducible and resumable.
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 from pathlib import Path
@@ -72,16 +73,52 @@ def save_state(name: str, state: dict) -> None:
     state_path(name).write_text(json.dumps(state, indent=2, ensure_ascii=False))
 
 
-def set_current(name: str) -> None:
-    CACHE.mkdir(parents=True, exist_ok=True)
-    (CACHE / "current_project").write_text(name)
+def _session_id() -> str | None:
+    """A per-session id so parallel kaggloop sessions don't share one 'current
+    project' pointer (which lets one session's commands land on another's
+    project). Prefer an explicit id; fall back to the POSIX session id (stable
+    per controlling terminal). Returns None if none is derivable."""
+    sid = os.environ.get("KLOOP_SESSION_ID") or os.environ.get("CLAUDE_SESSION_ID")
+    if sid:
+        return re.sub(r"[^A-Za-z0-9_.-]", "_", sid.strip())[:64]
+    try:
+        return f"sid{os.getsid(0)}"
+    except (OSError, AttributeError):
+        return None
 
 
-def current_project() -> str | None:
-    p = CACHE / "current_project"
+def _read_pointer(p: Path) -> str | None:
     if p.exists():
         name = p.read_text().strip()
         if name and project_dir(name).exists():
+            return name
+    return None
+
+
+def set_current(name: str) -> None:
+    CACHE.mkdir(parents=True, exist_ok=True)
+    sid = _session_id()
+    if sid:
+        # Per-session pointer only — never touch the shared legacy pointer, so we
+        # can't clobber another concurrent session's 'current project'.
+        (CACHE / f"current_project__{sid}").write_text(name)
+    else:
+        (CACHE / "current_project").write_text(name)
+
+
+def current_project() -> str | None:
+    # Resolution precedence (most explicit first) so concurrent sessions don't
+    # collide on one shared pointer:
+    #   1) KLOOP_PROJECT env override (per-shell/session, deterministic)
+    #   2) this session's own pointer file
+    #   3) the legacy global pointer (back-compat)
+    env = (os.environ.get("KLOOP_PROJECT") or "").strip()
+    if env and project_dir(env).exists():
+        return env
+    sid = _session_id()
+    for p in ([CACHE / f"current_project__{sid}"] if sid else []) + [CACHE / "current_project"]:
+        name = _read_pointer(p)
+        if name:
             return name
     return None
 

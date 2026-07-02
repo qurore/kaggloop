@@ -83,6 +83,31 @@ python -m kloop.project set --stage experiment --status done --note "round <iter
 Output to the user: kept/rejected with CV deltas + gate status, the new `best_cv`, and which
 OOF sets are ready to ensemble. Offer `/kaggloop-submit`.
 
+## Judged competitions (no CV — the deliverable is scored by the judge rubric)
+
+If the comp is **judged / has no automated leaderboard** (survey set `scoring_mode` =
+`judged`/`hybrid` and built `judge_rubric.json`), an "experiment" is not a Colab training run —
+it is **producing or upgrading the deliverable** (the writeup draft + the agent / artifacts /
+figures it documents) and then **scoring it with the LLM-as-Judge rubric**. Per bet:
+1. **Implement the change** to the deliverable that targets the chosen weak sub-criteria.
+2. **Judge it — a separate, blind, adversarial pass.** Score the current draft against the fixed
+   `judge_rubric.json` anchors: quote the draft as evidence per sub-criterion, actively steelman
+   its weaknesses, and (where useful) score it *relative to* a calibrated exemplar. Write the
+   result to `projects/<name>/judge/iter_<NNN>.json` (per-sub-criterion raw scores + weighted
+   total + concrete gap items). Judge in a **fresh pass, not in the same breath as authoring**, so
+   it isn't self-flattering.
+3. **Keep only if the judged total rises** (re-judge before/after; the delta must be attributable
+   to this change), then update the campaign best:
+   ```bash
+   python -m kloop.project set --best-lb <judged_total> --note "iter<N>: <change> -> judged <total>/100"
+   python -m kloop.journal log --kind hypothesis_kept --decision "keep <change>" \
+       --rationale "+<Δ> judged (crit <c>: anchor↑)" --evidence "judge/iter_<NNN>.json"
+   ```
+   (`--best-lb` carries the judged total on the 0–100 scale in judged mode.) The data-leakage
+   gate is **replaced by the judge-rubric gate**; any code/agent still gets normal correctness
+   checks. For **hybrid** comps, refresh the real automated sub-score (e.g. the agent's ladder
+   rating) and feed it into the rubric's performance criterion before computing the total.
+
 ## Code / simulation competitions (submission is code, not a CSV)
 If the comp ships an **SDK / evaluation harness** and you submit code (an attack/agent/policy):
 - **Reproduce the eval harness locally first** with a fast/deterministic backend (the SDK's

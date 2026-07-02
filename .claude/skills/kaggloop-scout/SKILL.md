@@ -44,7 +44,9 @@ The user gives **one competition**: a URL like
   targeted mode (A) on it to create the project.
 
 ## A good TLDR card answers, fast
-**What & metric** (one line each) · **deadline / prize / # teams** · **data** (modality,
+**What & metric** (one line each) · **scoring mode** (automated leaderboard / **judged writeup** /
+hybrid — judged comps run the LLM-as-Judge rubric loop, not CV/ensemble) ·
+**deadline / prize / # teams** · **data** (modality,
 size, fits one Colab GPU?) · **why we might win** (the concrete edge) · **risks**
 (saturated LB, leakage bans, huge data, code-competition limits) · **effort** (S/M/L +
 rough wall-clock per Colab experiment) · **kaggloop fit (1–5)** (how well it suits this

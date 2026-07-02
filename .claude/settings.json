@@ -12,6 +12,7 @@
       "Bash(python -m kloop.ledger:*)",
       "Bash(python -m kloop.gate:*)",
       "Bash(python -m kloop.journal:*)",
+      "Bash(python -m kloop.selfimprove:*)",
       "Bash(python -m kloop.kaggle list:*)",
       "Bash(python -m kloop.kaggle files:*)",
       "Bash(python -m kloop.kaggle kernels:*)",
@@ -24,9 +25,16 @@
       "Bash(.venv/bin/python -m kloop.ledger:*)",
       "Bash(.venv/bin/python -m kloop.gate:*)",
       "Bash(.venv/bin/python -m kloop.journal:*)",
+      "Bash(.venv/bin/python -m kloop.selfimprove:*)",
       "Bash(.venv/bin/python -m kloop.colab status:*)",
       "Bash(.venv/bin/python -m kloop.score:*)",
-      "Bash(bash scripts/doctor.sh)"
+      "Bash(bash scripts/doctor.sh)",
+      "Edit(.claude/skills/**)",
+      "Write(.claude/skills/**)",
+      "Edit(.claude/hooks/**)",
+      "Write(.claude/hooks/**)",
+      "Edit(CLAUDE.md)",
+      "Write(CLAUDE.md)"
     ],
     "deny": []
   },

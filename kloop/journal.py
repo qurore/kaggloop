@@ -35,7 +35,7 @@ from . import state
 KINDS = [
     "competition_selected", "target_set", "cv_design", "hypothesis_proposed",
     "hypothesis_kept", "hypothesis_rejected", "ensemble", "gate", "submission",
-    "gap_analysis", "loop_decision", "decision",
+    "gap_analysis", "self_improve", "loop_decision", "decision",
 ]
 
 
