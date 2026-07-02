@@ -19,7 +19,7 @@ import argparse
 import json
 import sys
 
-from . import notebooks, state
+from . import ledger, notebooks, state
 
 
 def _resolve(name: str | None) -> str:
@@ -46,6 +46,10 @@ def cmd_show(args) -> int:
 def cmd_set(args) -> int:
     name = _resolve(args.name)
     st = state.load_state(name)
+    # The iteration being CLOSED: the loop-decision `set` bumps --iteration in
+    # the same call that marks submit done, so enforcement on "this round" must
+    # look at the pre-update iteration, not the bumped one.
+    closing_iteration = st.get("iteration")
     fields = {
         "stage": args.stage, "status": args.status, "competition": args.competition,
         "metric": args.metric, "metric_direction": args.metric_direction,
@@ -95,6 +99,44 @@ def cmd_set(args) -> int:
                 f"✗ stage '{st['stage']}' (iter {st['iteration']}) を done にできません: {why} "
                 f"鉄則: 毎ループ Public Score 上位5ノートブックを同期・読了してから閉じること — "
                 f"`python -m kloop.notebooks sync --name {name}` を実行してください。",
+                file=sys.stderr,
+            )
+            return 2
+
+    # Dual-submission enforcement (challenge track), part 1: hypothesize cannot
+    # close without at least one live challenge-track bet for this iteration —
+    # a bold, interdisciplinary breakthrough hypothesis, verified as a thin
+    # layer on top of the standard pipeline and cashed in as the round's
+    # mandatory SECOND (challenge) submission.
+    if st.get("status") in ("done", "complete") and st.get("stage") == "hypothesize":
+        live = [r for r in ledger.challenge_bets(name, st.get("iteration"))
+                if r.get("status") != "rejected"]
+        if not live:
+            print(
+                f"✗ stage 'hypothesize' (iter {st['iteration']}) を done にできません: "
+                f"この iteration の challenge-track 仮説（track=challenge）が未登録です。"
+                f"通常の bets に加え、異分野の機構を持ち込むような斬新なチャレンジ仮説を"
+                f"1本以上 `python -m kloop.ledger add --track challenge ...` で登録して"
+                f"ください（デュアル提出の強制）。",
+                file=sys.stderr,
+            )
+            return 2
+
+    # Dual-submission enforcement, part 2: submit cannot close (or the project
+    # complete) without the round's challenge submission journaled
+    # (kind=challenge_submission), or an explicit hard-blocker deferral
+    # (kind=challenge_deferred — e.g. zero remaining daily submissions).
+    if st.get("status") in ("done", "complete") and st.get("stage") == "submit":
+        kinds = {d.get("kind") for d in state.load_decisions(name)
+                 if d.get("iteration") == closing_iteration}
+        if not ({"challenge_submission", "challenge_deferred"} & kinds):
+            print(
+                f"✗ stage 'submit' (iter {closing_iteration}) を done にできません: "
+                f"チャレンジ提出が未記録です。2本目（challenge track）を提出して "
+                f"`python -m kloop.journal log --kind challenge_submission ...` を記録するか、"
+                f"提出不能な hard blocker（残り提出枠ゼロ等）がある場合のみ "
+                f"`--kind challenge_deferred --rationale <理由>` を記録してください"
+                f"（デュアル提出の強制）。",
                 file=sys.stderr,
             )
             return 2

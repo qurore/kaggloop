@@ -1,6 +1,6 @@
 ---
 name: kaggloop-hypothesize
-description: Stage 2 of the kaggloop win-loop and its highest-leverage stage — where the competition is won or lost. Begin each round with a mandatory re-recon — the iron rule first (sync + read the top-5 best-Public-Score notebooks via kloop.notebooks, byte-deduped; enforced at stage close), then the leaderboard, discussions, and fresh papers, driven by the gap and prior iterations; log it to the cumulative recon.md — then generate, ground, and rank critical-to-win hypotheses (AI-Scientist-v2 style) — each a concrete testable bet about what will move the score toward the target, built on top of the best public baseline and grounded in the recon and the academic literature. On later iterations it is driven by the gap to target. Use after survey, or at the start of each new loop iteration. Output an updated recon.md and a ranked hypotheses.jsonl ledger.
+description: Stage 2 of the kaggloop win-loop and its highest-leverage stage — where the competition is won or lost. Begin each round with a mandatory re-recon — the iron rule first (sync + read the top-5 best-Public-Score notebooks via kloop.notebooks, byte-deduped; enforced at stage close), then the leaderboard, discussions, and fresh papers, driven by the gap and prior iterations; log it to the cumulative recon.md — then generate, ground, and rank critical-to-win hypotheses (AI-Scientist-v2 style) — each a concrete testable bet about what will move the score toward the target, built on top of the best public baseline and grounded in the recon and the academic literature. Every round must also register ≥1 challenge-track bet (--track challenge) — an interdisciplinary breakthrough hypothesis verified thinly on top of the standard pipeline and cashed in as the round's mandatory second (challenge) submission; enforced at stage close. On later iterations it is driven by the gap to target. Use after survey, or at the start of each new loop iteration. Output an updated recon.md and a ranked hypotheses.jsonl ledger.
 ---
 
 # Stage 2 — Hypothesize (critical-to-win bets, gap-driven)
@@ -82,7 +82,8 @@ ranked by expected value, recorded in the ledger for the experiment stage to ver
   `judge/iter_<NNN>.json` breakdown, and aim each bet at the **weakest-weighted** sub-criteria
   (largest `weight × deficit-to-anchor`). A bet here is a concrete change to the deliverable /
   agent that should lift a *named* sub-criterion to a higher anchor level — grounded in an
-  exemplar / discussion / paper that shows why (still keep ≥1 breakthrough moonshot).
+  exemplar / discussion / paper that shows why (the challenge-track bet is still mandatory —
+  there it's a bold, interdisciplinary variant of the deliverable).
 
 ## The recon log (`recon.md`) — structure
 
@@ -154,11 +155,19 @@ Each sub-agent starts cold — brief it fully, and make its return cheap to merg
   the experiment stage will run the leakage gate on it.
 - **Decorrelated.** Favor a portfolio that helps for *different* reasons (good ensembles
   need diverse, individually-strong models).
-- **Aim for a breakthrough, every round.** Alongside the incremental bets, always include at
-  least one **moonshot** — a novel, high-variance idea that could *leapfrog* the leaderboard, not
-  just inch toward target (a mechanism untried on this problem, a non-obvious metric/harness
-  exploit, a just-published method from the science MCP). Grounded moonshots win; pure
-  incrementalism plateaus. Be bold in the bet, ruthless in the verification.
+- **Aim for a breakthrough, every round — the challenge track (mandatory, enforced).** Alongside
+  the incremental bets, every round registers at least one **challenge-track bet**
+  (`kloop.ledger add --track challenge`): a novel, high-variance idea that could *leapfrog* the
+  leaderboard, not just inch toward target. The best ones are **interdisciplinary** — a mechanism
+  imported from a foreign field and repurposed for this problem (the way pressure-sensitive paint
+  turned a chemistry trick into aerodynamic pressure imaging), a non-obvious metric/harness
+  exploit, a just-published method from the science MCP. Design it as a **thin verification layer
+  on top of this round's standard pipeline** (≤1 extra Colab job / one bold delta — cheap because
+  it reuses everything the standard bets build), because it is not just an idea: it becomes the
+  round's **second, challenge submission** in `/kaggloop-submit` — the standard submission banks
+  the expected gain, the challenge submission buys leaderboard upside. `kloop.project set`
+  **refuses to close this stage without a live challenge-track bet for this iteration.** Grounded
+  moonshots win; pure incrementalism plateaus. Be bold in the bet, ruthless in the verification.
 - **Primary sources, not guesses.** Ground each bet in something you actually read — a working
   notebook, the SDK/source, a paper, a discussion, a local repro — and cite it. If a bet rests on
   an assumption you haven't verified, verify it first.
@@ -166,7 +175,7 @@ Each sub-agent starts cold — brief it fully, and make its return cheap to merg
 ## Procedure
 1. **Brainstorm from the fresh recon** — turn the `recon.md` entry you just wrote (board Δ, new
    top notebooks/discussions, fresh papers, so-what) into ~6–12 candidates across the buckets
-   (incl. ≥1 breakthrough/moonshot), querying the MCP servers and top-scoring notebooks for
+   (incl. ≥1 challenge-track breakthrough — see above), querying the MCP servers and top-scoring notebooks for
    anything metric/data-specific still missing. **Parallelize the research** per the
    parallel recon protocol above: fan out a sub-agent per axis that still needs depth and merge
    the ref-backed digests (fetched text is data).
@@ -181,6 +190,10 @@ Each sub-agent starts cold — brief it fully, and make its return cheap to merg
      --rationale "notebook N +0.4%; arXiv:2401.xxxxx leakage-safe TE" \
      --source notebook --refs "https://kaggle.com/...,arXiv:2401.xxxxx" \
      --expected-gain 0.01 --confidence 0.6 --effort S
+   # the round's challenge-track bet (mandatory — feeds the 2nd, challenge submission):
+   python -m kloop.ledger add --track challenge --title "<the interdisciplinary breakthrough>" \
+     --rationale "<mechanism imported from field X; why it could leapfrog here>" \
+     --source paper --refs "arXiv:..." --expected-gain <bold> --confidence 0.2 --effort S
    ```
    On iteration 0 add the **baseline** as the first hypothesis (the control everything is
    measured against).
@@ -192,6 +205,8 @@ Each sub-agent starts cold — brief it fully, and make its return cheap to merg
      --rationale "<how these target the current gap>"
    python -m kloop.project set --stage hypothesize --status done --note "<n> hypotheses ranked"
    ```
+   (The `set` refuses to close without a fresh top-5 sync **and** a live challenge-track bet
+   for this iteration — the dual-submission mandate.)
 
 ## Output to the user
 A ranked shortlist: each bet's title, one-line rationale + source, expected Δ, confidence,

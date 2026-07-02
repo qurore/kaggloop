@@ -1,6 +1,6 @@
 ---
 name: kaggloop-experiment
-description: Stage 3 of the kaggloop win-loop — implement and verify the top-ranked hypotheses by writing pipeline code (starting from the synced best-Public-Score public notebook as the baseline — the iron rule; never scratch-written code below the public floor), running it on Google Colab (GPU) via the kloop.colab bridge, scoring with the dossier CV, and running the data-leakage gate on each result before keeping it. Keeps what improves CV (leak-free) and prunes the rest, updating the ledger and saving OOF predictions for ensembling. Use after hypothesize. Output Colab results, CV scores, OOF/test predictions.
+description: Stage 3 of the kaggloop win-loop — implement and verify the top-ranked hypotheses by writing pipeline code (starting from the synced best-Public-Score public notebook as the baseline — the iron rule; never scratch-written code below the public floor), running it on Google Colab (GPU) via the kloop.colab bridge, scoring with the dossier CV, and running the data-leakage gate on each result before keeping it. Keeps what improves CV (leak-free) and prunes the rest, updating the ledger and saving OOF predictions for ensembling. Also verifies the round's challenge-track bet as a thin layer on top of the standard pipeline, producing the gate-clean artifacts for the mandatory second (challenge) submission. Use after hypothesize. Output Colab results, CV scores, OOF/test predictions.
 ---
 
 # Stage 3 — Experiment (verify hypotheses on Colab, gate every result)
@@ -87,6 +87,23 @@ attributable. Reuse shared code (data loading, CV, metric) across entrypoints.
 Branch from the current best pipeline, keep (gate-clean) improvements, prune dead ends, let
 a strong bet spawn follow-ups. The ledger + `best_cv` are the frontier. Keep a few
 **decorrelated** strong models alive for ensembling.
+
+## The challenge track — thin verification for the second submission (every round)
+
+One of this round's bets is the **challenge-track** hypothesis (`track=challenge` in the
+ledger, marked `CH` in `kloop.ledger list` — the interdisciplinary breakthrough registered in
+hypothesize). Verify it as a **thin layer on top of this round's best standard pipeline**:
+reuse the data/CV/feature/metric code, run *after* the standard queue is safe, budget ≤1 extra
+Colab job — and gate it like any other result. Its bar is different from the standard bets':
+it feeds the round's mandatory **second (challenge) submission** in `/kaggloop-submit`, so
+what it must be is **valid** — leakage-gate-clean, format-correct test predictions saved under
+`experiments/results/` — not necessarily better than the standard best on CV. Upside variance
+is the point; the leaderboard gives the real answer. So **keep its test/submission artifacts
+even when its CV trails the standard ensemble**, and update the ledger with the honest CV.
+Only a *structurally broken or leaky* challenge result is dropped — record that in the ledger
+(`--status rejected --notes "<why>"`) so `/kaggloop-submit` can journal `challenge_deferred`
+with the hard blocker. In judged comps, the challenge experiment is the **bold variant of the
+deliverable**, judged blind with the same rubric.
 
 ## Close the stage
 A `hypothesis_kept`/`hypothesis_rejected` decision must be journaled (observability gate);

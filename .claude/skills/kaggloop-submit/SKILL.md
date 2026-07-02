@@ -1,6 +1,6 @@
 ---
 name: kaggloop-submit
-description: Stage 4 of the kaggloop win-loop — finalize the round by ensembling the kept models, passing the strict data-leakage gate (enforced before any submission), submitting to Kaggle via the API, recording the public leaderboard score, comparing the actual score to the target, running the results-driven pipeline self-improvement pass (skills/hooks/CLAUDE.md may be upgraded only when the realized score improved), and deciding whether to loop again to close the gap. Use after experiment. Output a submission, a leaderboard.jsonl + progress.jsonl entry, a self-improvement log entry, and a loop/stop decision.
+description: Stage 4 of the kaggloop win-loop — finalize the round by ensembling the kept models, passing the strict data-leakage gate (enforced before any submission), submitting to Kaggle via the API — the standard ensemble AND the round's challenge-track submission (the dual-submission mandate, enforced at stage close) — recording the public leaderboard scores, comparing the actual score to the target, running the results-driven pipeline self-improvement pass (skills/hooks/CLAUDE.md may be upgraded only when the realized score improved), and deciding whether to loop again to close the gap. Use after experiment. Output two submissions (main + challenge), a leaderboard.jsonl + progress.jsonl entry, a self-improvement log entry, and a loop/stop decision.
 ---
 
 # Stage 4 — Submit (gate → ensemble → submit → study the gap → decide)
@@ -35,6 +35,14 @@ the tabular flow below (ensemble → leakage gate → `kaggle submit` CSV) does 
    ```
    **Do not finalize** without a primary-source `judge_rubric.json` **and** a fresh
    `judge/iter_<NNN>.json` for this iteration — that is the enforced quality gate for judged comps.
+2b. **The challenge deliverable (the dual-submission mandate, judged form).** Judged rounds
+   ship a challenge too: the challenge-track bet becomes a **bold, interdisciplinary variant or
+   extension of the deliverable** (a section/demo/artifact importing a mechanism from a foreign
+   field). Judge it blind against the same rubric, write `judge/iter_<NNN>_challenge.json`, and
+   journal `--kind challenge_submission` (or `--kind challenge_deferred` with the hard
+   blocker) — the stage will not close without one of the two. The better-scoring variant
+   becomes the writeup candidate and `--best-lb` carries its total.
+
 3. **The human submits the Writeup on the Kaggle website** (New Writeup → attach assets → pick a
    Track → **Submit**) before the deadline — the one manual gate (like scout). There is no
    `kaggle submit` CSV and `guard_submission` does not fire; **never** fabricate a leaderboard
@@ -77,7 +85,9 @@ the tabular flow below (ensemble → leakage gate → `kaggle submit` CSV) does 
    ```
 
 4. **Respect submission budget.** Check remaining count with
-   `python -m kloop.kaggle submissions <comp>`. Submit only your best candidate(s); keep two
+   `python -m kloop.kaggle submissions <comp>`. A round ships **two** submissions — the main
+   ensemble (step 5) plus the challenge submission (step 5b) — so it wants two remaining
+   slots; the **main sub always goes first** when the budget is tight. Keep two
    final-selection slots in mind for the competition's end.
 
 5. **Submit and log it:**
@@ -89,7 +99,36 @@ the tabular flow below (ensemble → leakage gate → `kaggle submit` CSV) does 
    python -m kloop.journal log --kind submission --decision "submitted <name>.csv" \
        --rationale "cv=<cv>, expected ~target" --evidence "submissions/leaderboard.jsonl"
    ```
-   (Append `{file, cv, lb, message, ts}` to `submissions/leaderboard.jsonl`.)
+   (Append `{file, cv, lb, message, track: "standard", ts}` to `submissions/leaderboard.jsonl`.)
+
+5b. **The challenge submission (mandatory second submission — enforced at stage close).** Every
+   round also ships the **challenge-track** artifact verified in `/kaggloop-experiment` (the
+   interdisciplinary breakthrough bet — `kloop.ledger list` marks it `CH`). After the main
+   submission is in, re-run the leakage gate on the challenge artifacts (`gate check` on its
+   OOF/preds → `affirm` → `verify` — it is a different model; its gate run must be its own),
+   then submit and journal it:
+   ```bash
+   python -m kloop.kaggle submit <comp> -f submissions/<name>_challenge.csv \
+       -m "iter<N> CHALLENGE: <the bet> cv=<cv>"
+   python -m kloop.kaggle submissions <comp>       # read back its public score
+   python -m kloop.journal log --kind challenge_submission \
+       --decision "challenge sub <file> LB=<score> (main LB=<score>)" \
+       --rationale "<the breakthrough bet + what the LB answered>" \
+       --evidence "submissions/leaderboard.jsonl"
+   ```
+   Append it to `submissions/leaderboard.jsonl` with `track: "challenge"`. `--best-lb` /
+   `--best-submission` take **whichever of the two submissions scored better** — when the
+   challenge sub wins, the leapfrog worked: promote it to next round's standard baseline.
+   Only a **hard blocker** — zero remaining daily submissions, a gate-failing / structurally
+   broken challenge artifact (rejected in the ledger with the reason), the deadline — may skip
+   it, and that skip must be journaled honestly:
+   ```bash
+   python -m kloop.journal log --kind challenge_deferred --rationale "<the hard blocker>" \
+       --decision "challenge submission deferred"
+   ```
+   `kloop.project set` **refuses to close this stage without one of the two records**
+   (`challenge_submission` or `challenge_deferred`) for this iteration — never game the
+   deferral: "CV was worse than the main sub" is NOT a blocker (upside variance is the point).
 
 6. **Study the gap (the core of the loop).** Compare actual to target and analyze *why*:
    ```bash
@@ -101,7 +140,10 @@ the tabular flow below (ensemble → leakage gate → `kaggle submit` CSV) does 
    ```
    Read the standing: how far is our realized score from the **bronze/silver/gold lines** and
    from `top`? Did LB move with CV? Is the gap from underfitting, a CV↔LB mismatch (shake-up /
-   leakage / distribution shift), or a metric/post-processing miss? **And check the public
+   leakage / distribution shift), or a metric/post-processing miss? **Compare the two tracks:**
+   did the challenge submission beat the main one (leapfrog → promote it to next round's
+   baseline), land close (the mechanism has signal → sharpen it next round), or crater (retire
+   it and pick a fresh challenge axis)? **And check the public
    floor:** is our realized score still below the best public notebook's Public Score (the synced
    top-5 — `python -m kloop.notebooks list` + `recon.md`)? Below the floor, the gap analysis must
    explain *why we underperform code anyone can fork*, and closing to that baseline (adapt it —
@@ -128,6 +170,9 @@ the tabular flow below (ensemble → leakage gate → `kaggle submit` CSV) does 
                                #   MCP (arxiv/semantic-scholar), the SDK source, a local harness
                                #   repro. Cite each. No hand-waving. Include: above or below the
                                #   best public notebook's score, and why.
+   ## Challenge track          # the 2nd (challenge) submission: the bet, its LB vs the main sub,
+                               #   verdict (leapfrog → new baseline / signal → sharpen / retire);
+                               #   or the journaled challenge_deferred hard blocker
    ## Next iteration — plan & resolve   # the concrete方針 for what to try/investigate next, and why
    ```
    Fill every section from real evidence (a predicted-vs-actual number with no derivation, or a
@@ -260,11 +305,15 @@ does **not** map 1:1. Hard-won rules — follow them to avoid wasting the daily 
    the project venv. Set realistic **expectations from the leaderboard**: check the top teams'
    *submission counts* — a big number (dozens+) means an iteration-heavy comp where no one
    one-shots the target; plan for many tuned submissions, and bank valid scores early.
+9. **The dual-submission mandate applies here too.** The challenge-track bet ships as its own
+   notebook version (e.g. `iter<N>-challenge`), submitted after the main version when the
+   budget allows; journal `challenge_submission` / `challenge_deferred` exactly as in step 5b.
 
 ## Output to the user
-A scoreboard: this round's submission(s), CV vs public LB, the new `best_lb`, **target vs
-actual and the gap**, the CV↔LB read, the **self-improvement outcome** (files changed +
-lesson, or "no improvement → no change"), and the decision (loop with the plan, or finalize).
+A scoreboard: this round's **two submissions (main + challenge)** with CV vs public LB each,
+which track won, the new `best_lb`, **target vs actual and the gap**, the CV↔LB read, the
+**self-improvement outcome** (files changed + lesson, or "no improvement → no change"), and
+the decision (loop with the plan, or finalize).
 If the competition is still open, remind the user to set their **final submission selection**
 before the deadline.
 

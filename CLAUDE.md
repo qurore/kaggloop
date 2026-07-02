@@ -32,7 +32,8 @@ the gap's `actual` — so the same gap-closing loop still runs. See **"Judged co
 `scout` (human picks the competition) → `survey` (dossier + CV + **target**) →
 `hypothesize` (**re-recon → high-quality, gap-focused bets** — the highest-leverage stage,
 where the competition is won or lost) → `experiment` (verify on Colab + **leakage gate each
-result**) → `submit` (**gate → ensemble → submit → study gap → self-improve → decide**). Drive it with the
+result**) → `submit` (**gate → ensemble → submit ×2 (baseline + challenge) → study gap →
+self-improve → decide**). Drive it with the
 `kaggloop` umbrella skill or run stages directly (`/kaggloop-scout` … `/kaggloop-submit`).
 Each `SKILL.md` is authoritative.
 
@@ -55,13 +56,19 @@ is spent:
    → **re-run the top-5 sync** (byte-deduped — read only real NEW/UPDATED deltas) + rescan the
    leaderboard + discussions + fresh papers,
    gap-driven → append a dated entry to `recon.md`), then rank critical-to-win, gap-driven bets in
-   the ledger — including **≥1 breakthrough moonshot**. Below the public floor, bet #1 is always
-   closing to the best public notebook.
+   the ledger — including **≥1 challenge-track bet** (`kloop.ledger add --track challenge`: the
+   interdisciplinary breakthrough that becomes the round's second submission — enforced at stage
+   close). Below the public floor, bet #1 is always closing to the best public notebook.
 3. **`/kaggloop-experiment`** — implement the top bets; run on **Colab** (or reproduce the eval
    harness locally for code comps); score on the CV; **run the leakage gate on each result**;
-   keep what improves CV leak-free, prune the rest; save OOF/test preds.
+   keep what improves CV leak-free, prune the rest; save OOF/test preds. Then **verify the
+   challenge-track bet as a thin layer on top of the standard pipeline** (≤1 extra Colab job,
+   gate-clean) — its artifacts feed the second submission.
 4. **`/kaggloop-submit`** — ensemble the kept models → **pass the leakage gate (enforced)** →
-   submit to Kaggle → record the LB → **study the gap** (`kloop.project gap`) → **write the
+   **submit twice, safe-first: the baseline submission, then the challenge submission**
+   (each gated; journal `challenge_submission`, or `challenge_deferred` on a hard blocker —
+   enforced at stage close) → record both LBs (`best_lb` = the better) → **study the gap**
+   (`kloop.project gap`) → **write the
    iteration learning journal** (`iterations/iter_<NNN>_*.md`) → **results-driven
    self-improvement pass** (`kloop.selfimprove check`; only a real score improvement may
    trigger pipeline edits — see "Pipeline self-improvement" below) → loop decision.
@@ -132,6 +139,24 @@ sharp, well-grounded hypothesis can leapfrog the board. Invest the most thought 
   high-variance idea that could *leapfrog* the board — a mechanism nobody has tried on this
   problem, a non-obvious exploit of the metric/harness, a fresh just-published method. Be bold in
   the bet, ruthless in the verification. Incrementalism plateaus; grounded breakthroughs win.
+- **THE DUAL-SUBMISSION MANDATE — every loop ships TWO submissions, in order (user-forced).**
+  The moonshot is not optional and not just a ledger line: each loop must **produce and submit two
+  distinct deliverables, safe-first**. **(1) The baseline submission** — the usual best (the
+  gap-closing incremental work), banked first as the proven floor. **(2) The breakthrough
+  submission** — the baseline **plus a thin extra layer of challenge hypothesis-testing**: a bold,
+  *interdisciplinary* mechanism reached in from another field (the "pressure-sensitive-paint
+  visualizes airflow" kind of cross-domain novelty — physics/algebra/signal-processing/biology →
+  this problem), verified the same way, and swapped in **only where it verifies leak-free** (so #2
+  is provably ≥ #1). **Submit #1 then #2, sequentially** (safe floor locked before the swing;
+  competitions allow multiple daily subs + keep 2 final picks — bank one of each). Applies to every
+  competition, automated or judged; on judged comps the "second submission" is a breakthrough
+  variant of the deliverable re-scored by the judge. See [[breakthrough-dual-submission-mandate]].
+  **Enforced in `kloop.project set`:** `hypothesize` cannot close without a live
+  `--track challenge` ledger bet for the iteration, and `submit` cannot close without a journaled
+  `challenge_submission` (or a hard-blocker `challenge_deferred` — zero submissions left / a
+  gate-failing artifact / the deadline; "its CV was worse" is NOT a blocker). Mechanics live in
+  the stage skills (`/kaggloop-hypothesize` challenge-track bullet, `/kaggloop-experiment`
+  "The challenge track", `/kaggloop-submit` step 5b).
 - **Research broad and fast with parallel sub-agents — by default, not on request.** The research
   axes (notebooks · discussions · literature) are independent: whenever ≥2 need a fresh scan
   (survey's broad read; every hypothesize re-recon), spawn one Explore/general-purpose sub-agent

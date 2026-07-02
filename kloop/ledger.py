@@ -17,6 +17,11 @@ Record schema (one JSON object per line)::
       "title": "Pseudo-labeling on the unlabeled test set",
       "rationale": "Top notebook X + paper Y (arXiv:....) report +0.5% from ...",
       "source": "notebook|discussion|paper|insight",      # where the bet came from
+      "track": "standard",           # standard | challenge — challenge = the round's
+                                     #   interdisciplinary breakthrough bet, verified as a
+                                     #   thin layer on the standard pipeline and cashed in
+                                     #   as the mandatory SECOND (challenge) submission
+      "iteration": 2,                # loop iteration the bet was proposed in
       "refs": ["https://kaggle.com/...", "arXiv:2401.00000"],
       "expected_gain": 0.004,        # estimated score delta (in metric units)
       "confidence": 0.6,             # 0..1 subjective prior the bet pays off
@@ -90,13 +95,34 @@ def priority(row: dict) -> float:
     return gain * conf * disc
 
 
+def challenge_bets(run_id: str, iteration=None) -> list[dict]:
+    """Challenge-track bets (the mandatory breakthrough / second-submission track).
+
+    With ``iteration`` given, only bets proposed in that loop iteration are
+    returned — this is what the dual-submission enforcement in ``kloop.project``
+    checks before letting a hypothesize stage close.
+    """
+    rows = [r for r in load(run_id) if r.get("track") == "challenge"]
+    if iteration is not None:
+        rows = [r for r in rows if r.get("iteration") == iteration]
+    return rows
+
+
 def add(run_id: str, **fields) -> dict:
     rows = load(run_id)
+    iteration = fields.get("iteration")
+    if iteration is None:
+        try:
+            iteration = state.load_state(run_id).get("iteration")
+        except FileNotFoundError:
+            iteration = None
     rec = {
         "id": _next_id(rows),
         "title": fields.get("title", ""),
         "rationale": fields.get("rationale", ""),
         "source": fields.get("source", "insight"),
+        "track": fields.get("track") or "standard",
+        "iteration": iteration,
         "refs": fields.get("refs", []),
         "expected_gain": fields.get("expected_gain"),
         "confidence": fields.get("confidence"),
@@ -150,6 +176,7 @@ def cmd_add(args) -> int:
         title=args.title,
         rationale=args.rationale or "",
         source=args.source,
+        track=args.track,
         refs=refs,
         expected_gain=args.expected_gain,
         confidence=args.confidence,
@@ -164,6 +191,7 @@ def cmd_update(args) -> int:
     rec = update(
         rid, args.id,
         status=args.status,
+        track=args.track,
         cv_before=args.cv_before,
         cv_after=args.cv_after,
         lb_after=args.lb_after,
@@ -184,8 +212,9 @@ def cmd_list(args) -> int:
         print("（仮説はまだありません）")
         return 0
     for r in rows:
+        mark = "CH" if r.get("track") == "challenge" else "  "
         print(
-            f"{r['id']}  [{r.get('status','?'):9s}] "
+            f"{r['id']} {mark} [{r.get('status','?'):9s}] "
             f"P={priority(r):.5f}  gain={r.get('expected_gain')} "
             f"conf={r.get('confidence')} eff={r.get('effort')}  {r.get('title','')}"
         )
@@ -202,6 +231,8 @@ def main(argv=None) -> int:
     pa.add_argument("--rationale", default="")
     pa.add_argument("--source", default="insight",
                     choices=["notebook", "discussion", "paper", "insight"])
+    pa.add_argument("--track", default="standard", choices=["standard", "challenge"],
+                    help="challenge = this round's breakthrough bet feeding the 2nd submission")
     pa.add_argument("--refs", default="", help="comma-separated references")
     pa.add_argument("--expected-gain", dest="expected_gain", type=float, default=None)
     pa.add_argument("--confidence", type=float, default=None)
@@ -213,6 +244,7 @@ def main(argv=None) -> int:
     pu.add_argument("--id", required=True)
     pu.add_argument("--status", default=None,
                     choices=["proposed", "testing", "kept", "rejected", "blocked"])
+    pu.add_argument("--track", default=None, choices=["standard", "challenge"])
     pu.add_argument("--cv-before", dest="cv_before", type=float, default=None)
     pu.add_argument("--cv-after", dest="cv_after", type=float, default=None)
     pu.add_argument("--lb-after", dest="lb_after", type=float, default=None)
