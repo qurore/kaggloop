@@ -1,6 +1,6 @@
 ---
 name: kaggloop-experiment
-description: Stage 3 of the kaggloop win-loop — implement and verify the top-ranked hypotheses by writing pipeline code, running it on Google Colab (GPU) via the kloop.colab bridge, scoring with the dossier CV, and running the data-leakage gate on each result before keeping it. Keeps what improves CV (leak-free) and prunes the rest, updating the ledger and saving OOF predictions for ensembling. Use after hypothesize. Output Colab results, CV scores, OOF/test predictions.
+description: Stage 3 of the kaggloop win-loop — implement and verify the top-ranked hypotheses by writing pipeline code (starting from the synced best-Public-Score public notebook as the baseline — the iron rule; never scratch-written code below the public floor), running it on Google Colab (GPU) via the kloop.colab bridge, scoring with the dossier CV, and running the data-leakage gate on each result before keeping it. Keeps what improves CV (leak-free) and prunes the rest, updating the ledger and saving OOF predictions for ensembling. Use after hypothesize. Output Colab results, CV scores, OOF/test predictions.
 ---
 
 # Stage 3 — Experiment (verify hypotheses on Colab, gate every result)
@@ -9,6 +9,18 @@ Turn the top-ranked hypotheses into code, run them on **Colab** with the dossier
 let the evidence decide what to keep — but **only after the leakage gate clears each
 result**. Rigorous local CV is the judge; the public LB is a noisy sanity check; a leaky CV
 is worse than no CV.
+
+## Start from the best public notebook — never from scratch (the iron rule's other half)
+
+The campaign's first experiment (iteration 0) is **not self-written code**: it is the **top
+synced public notebook** (rank #1 by Public Score under `projects/<name>/notebooks/`, from the
+survey/hypothesize sync) **adapted to the pipeline contract below** — same features/models/tricks,
+re-plumbed onto the dossier CV with gate artifacts and fixed seeds. Reproduce it, confirm its CV
+tracks its public LB, gate it, and set it as the campaign baseline (`--best-cv`). Every later bet
+is a measured delta **on top of** this baseline: first absorb everything the winners published,
+then renovate for the breakthrough. And whenever a loop's sync surfaces a public notebook that
+beats our current best, adapting it (or cherry-picking its edge into our pipeline) is the
+top-priority experiment — losing to copy-paste is never acceptable.
 
 ## Preconditions
 - A ranked ledger with `proposed`/`testing` hypotheses and a CV scheme.
@@ -32,7 +44,9 @@ Keep each entrypoint focused on **one hypothesis vs. the current best** so the C
 attributable. Reuse shared code (data loading, CV, metric) across entrypoints.
 
 ## Procedure (per hypothesis, highest priority first)
-1. **Implement** the smallest code that tests the bet against the current best baseline.
+1. **Implement** the smallest code that tests the bet against the current best baseline
+   (iteration 0: the adapted top public notebook — see above; reuse its code from
+   `notebooks/`, don't re-derive it).
 2. **Smoke-test locally** on a tiny slice (1 fold, few rows) to catch bugs before spending
    Colab time.
 3. **Submit to Colab** and tag the hypothesis:

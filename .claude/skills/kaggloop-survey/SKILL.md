@@ -1,6 +1,6 @@
 ---
 name: kaggloop-survey
-description: Stage 1 of the kaggloop win-loop — deep-dive the chosen competition into one dossier (data, exact metric, a leakage-safe CV scheme, rules, top notebooks, key discussions, relevant papers via the science MCP) AND set the target score the loop will chase. Use after a competition is selected, before forming hypotheses. Output projects/<name>/dossier.md, a CV scheme, and target_score.
+description: Stage 1 of the kaggloop win-loop — deep-dive the chosen competition into one dossier (data, exact metric, a leakage-safe CV scheme, rules, the top-5 best-Public-Score notebooks synced locally via kloop.notebooks (the iron rule, enforced) with the best one designated the baseline to adapt and beat, key discussions, relevant papers via the science MCP) AND set the target score the loop will chase (above the best public notebook — the floor). Use after a competition is selected, before forming hypotheses. Output projects/<name>/dossier.md, synced notebooks/, a CV scheme, and target_score.
 ---
 
 # Stage 1 — Survey (dossier + set the target)
@@ -20,9 +20,17 @@ to reach.
    - **Overview** (+ `/overview/evaluation`) — the task, the **exact metric** + precise definition.
    - **Data** — files, shapes, target distribution, id/group columns, time ordering, leakage
      risks (`python -m kloop.kaggle files <comp>`; download only what's needed, keep in `data/`).
-   - **Code** — the public notebooks (`python -m kloop.kaggle kernels <comp>`), incl. the
-     getting-started / official harness; for code/SDK-harness comps **trace the working
-     submission format** (deep-mined in step 4).
+   - **Code — THE IRON RULE (enforced).** Sort by best **Public Score** and **sync + read the
+     top 5 notebooks end-to-end**:
+     ```bash
+     python -m kloop.notebooks sync    # top-5 by Public Score → projects/<name>/notebooks/ (byte-deduped)
+     ```
+     (it picks `scoreAscending` automatically for minimize metrics). Record each one's **Public
+     Score** off the Code tab — the CLI returns the order, not the values. These five are the
+     de-facto **floor** and the **baseline material** the whole campaign adapts — read them like
+     a winner's solution writeup, not a skim. Also read the getting-started / official harness
+     notebook; for code/SDK-harness comps **trace the working submission format** (deep-mined in
+     step 4). The stage cannot close without this sync (`kloop.project set` enforces it).
    - **Discussion** — read broadly (WebFetch `/discussion`): pinned/host posts, insights,
      pitfalls, leak warnings, magic features, score deltas, format/timeout gotchas.
    - **Rules** — **external-data policy**, allowed frameworks, **code-competition** constraints,
@@ -40,18 +48,25 @@ to reach.
    *matches the metric and the competition's split*: stratified / **GroupKFold by entity** /
    time-based / adversarial-validation if train≠test. Write the exact folds + metric. Set:
    ```bash
-   python -m kloop.project set --metric <name> --metric-direction <maximize|minimize>
+   python -m kloop.project set --metric <name> --metric-direction <maximize|minimize> \
+       --scoring-mode automated        # or hybrid; judged comps set it in the judged section below
    ```
+   (`scoring_mode` also drives the iron-rule enforcement: `judged` is the only mode exempt from
+   the top-notebook sync at stage close, and `metric_direction` tells `kloop.notebooks sync`
+   which end of the Public-Score sort is "best".)
    Record the choice as a decision (required to close the stage):
    ```bash
    python -m kloop.journal log --kind cv_design --decision "<the CV scheme>" \
        --rationale "<why it is leakage-safe and matches the host split>"
    ```
 
-3. **Set the target score (the loop's goal).** From the leaderboard distribution and top
-   public notebooks, decide the score we aim to *receive at submission* — a medal line
-   (bronze/silver/gold), a top-X%, or "beat the best public notebook by Δ". Confirm the
-   ambition with the user if unsure. *(**Judged / no-leaderboard comps:** there is no LB score —
+3. **Set the target score (the loop's goal).** From the leaderboard distribution and the synced
+   top notebooks, decide the score we aim to *receive at submission* — a medal line
+   (bronze/silver/gold), a top-X%, or "beat the best public notebook by Δ". **The best public
+   notebook's Public Score is the floor, never the target**: anyone can fork it, so a target at
+   or below it means losing to copy-paste — set `target_score` strictly above it and record the
+   best-public score in the rationale. Confirm the ambition with the user if unsure.
+   *(**Judged / no-leaderboard comps:** there is no LB score —
    set the target on the **judge-rubric's** numeric scale instead; see "Judged competitions" below.)*
    ```bash
    python -m kloop.project set --target-score <score> \
@@ -59,13 +74,14 @@ to reach.
    python -m kloop.journal log --kind target_set --decision "target=<score>" --rationale "<...>"
    ```
 
-4. **Mine the competition's knowledge — winners first.** Rank the leaderboard
-   (`python -m kloop.kaggle leaderboard <comp>`), then study the **highest-scoring** solutions:
-   cross-reference top-LB teams with their public notebooks/working-notes, alongside the
-   most-voted and most-recent kernels
-   (`python -m kloop.kaggle kernels <comp> --sort-by voteCount -n 20`; `kernel-pull` the best) —
-   extract their CV/LB scores, features/models, CV setup, and (for code/SDK-harness comps)
-   **trace the exact *working* submission plumbing/format so you can match it**. Verify scoring
+4. **Mine the competition's knowledge — winners first.** Primary material = the **top-5 synced
+   notebooks** from step 1 (already local under `projects/<name>/notebooks/`): extract each one's
+   Public Score, features/models, CV setup, tricks, and (for code/SDK-harness comps) **the exact
+   *working* submission plumbing/format so you can match it**. Then rank the leaderboard
+   (`python -m kloop.kaggle leaderboard <comp>`) and cross-reference top-LB teams with their
+   public notebooks/working-notes; scan beyond the top-5 by votes/recency
+   (`python -m kloop.kaggle kernels <comp> --sort-by voteCount -n 20`) for ideas the score-sort
+   missed. Verify scoring
    facts against the SDK/source, not the notebook prose (notebooks go stale). Discussions
    (WebFetch `/discussion`) — insights, pitfalls, leak warnings, magic features, score deltas.
    **Don't speculate — read the primary source** (SDK code, a working kernel, papers, the web).
@@ -80,14 +96,19 @@ to reach.
    preferring recent, reproducible-on-one-GPU work. Record refs (arXiv id / DOI) + the
    concrete portable idea. Fallback: WebSearch or the Semantic Scholar HTTP API.
 
-6. **Baseline plan.** The simplest end-to-end pipeline that yields a valid submission
-   (data → features → model → the CV above → submission.csv). This is iteration 0's first
-   experiment.
+6. **Baseline plan — the best public notebook, adapted; never scratch-written code.** Iteration
+   0's first experiment is the **strongest synced notebook** (rank #1 by Public Score) adapted to
+   the pipeline contract (the dossier CV, gate artifacts, fixed seeds) — reproduce it, confirm
+   its score, and only then innovate on top. Writing a "simple" self-made pipeline while a
+   stronger public one sits in `notebooks/` wastes iterations below the public floor: first
+   learn everything the winners already published, then renovate for the breakthrough. Name the
+   chosen baseline notebook + its Public Score in the dossier.
 
 7. **Write the dossier** `projects/<name>/dossier.md` with sections: `Task & metric` ·
-   `Data & leakage notes` · `CV scheme (exact)` · `Rules & limits` · `Target & rationale` ·
-   `Top notebooks (scores + ideas)` · `Key discussions` · `Relevant papers (refs + idea)` ·
-   `Baseline plan` · `Edges to exploit`. Cite every source. **Then seed the reconnaissance log**
+   `Data & leakage notes` · `CV scheme (exact)` · `Rules & limits` · `Target & rationale (incl.
+   best-public floor)` · `Top-5 synced notebooks (Public Scores + stealable ideas + which is the
+   baseline)` · `Key discussions` · `Relevant papers (refs + idea)` ·
+   `Baseline plan (adapted from which notebook)` · `Edges to exploit`. Cite every source. **Then seed the reconnaissance log**
    `projects/<name>/recon.md` with a baseline entry (`## iter 000 — <date> — survey-baseline`)
    capturing this first scan — board position + top notebooks + key discussions + papers (for
    **judged** comps: exemplar writeups + discussions instead). Every later `/kaggloop-hypothesize`
@@ -100,11 +121,15 @@ to reach.
 
 ## Judged competitions (no automated leaderboard) — build the LLM-as-Judge rubric
 
-First, **classify the scoring mode** and record it (in `competition.json` + the dossier):
+First, **classify the scoring mode** and record it — in state
+(`python -m kloop.project set --scoring-mode <automated|judged|hybrid>`), `competition.json`, and
+the dossier:
 `automated` (a `submission.csv` / code rerun scored to a numeric leaderboard), `judged` (a
 human-scored **Kaggle Writeup** / analytics / hackathon / "strategy" comp — no LB number), or
 `hybrid` (a judged writeup whose rubric includes a real automated sub-score, e.g. an agent's
-ladder rating). If `automated`, skip this section. If `judged` / `hybrid`, the gap loop has **no
+ladder rating). If `automated`, skip this section. Only `judged` exempts the stage from the
+top-notebook sync enforcement (its Code tab has no Public Scores — **exemplar writeups play the
+top-notebooks role** instead); `hybrid` still syncs. If `judged` / `hybrid`, the gap loop has **no
 LB `actual`**, so you **must** build a rigorous quantitative judge rubric here — this is
 **enforced**: the loop cannot finalize without it, and it replaces the CV-design + target steps
 (2–3) above.
@@ -129,6 +154,7 @@ LB `actual`**, so you **must** build a rigorous quantitative judge rubric here �
    satisfies the observability gate for judged comps):
    ```bash
    python -m kloop.project set --metric judge_rubric --metric-direction maximize \
+       --scoring-mode judged \
        --target-score <e.g. 90> --target-rationale "<from exemplar calibration: top writeups ~92/100>"
    python -m kloop.journal log --kind cv_design --decision "scoring_mode=judged; judge rubric built + calibrated" \
        --rationale "<criteria+weights from official evaluation; calibrated on exemplars X (strong), Y (weak)>"

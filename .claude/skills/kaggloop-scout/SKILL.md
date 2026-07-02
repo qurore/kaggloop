@@ -25,8 +25,11 @@ The user gives **one competition**: a URL like
      WebFetch `https://www.kaggle.com/competitions/<slug>/overview` and `.../data` (and
      `.../overview/evaluation`). If the `kaggle` CLI + creds are set up, also
      `python -m kloop.kaggle files <slug>` and
-     `python -m kloop.kaggle kernels <slug> --sort-by voteCount -n 10` for the activity
-     signal and the scores strong public notebooks already reach.
+     `python -m kloop.kaggle kernels <slug> -n 10` (best **Public Score** first by default; pass
+     `--sort-by scoreAscending` when lower is better) for the activity signal and **the score the
+     best public notebook already reaches — the de-facto floor any entry must beat**. Read the
+     scores off the Code tab and put the best-public score on the TLDR card; the full top-5
+     sync + read happens in survey.
    - A quick **winnability read**: is there a clear strong baseline, a metric quirk to
      exploit, special/under-used data, a known leak the host allows? Is a single Colab GPU
      enough, or does it really need a cluster?
@@ -46,7 +49,8 @@ The user gives **one competition**: a URL like
 ## A good TLDR card answers, fast
 **What & metric** (one line each) · **scoring mode** (automated leaderboard / **judged writeup** /
 hybrid — judged comps run the LLM-as-Judge rubric loop, not CV/ensemble) ·
-**deadline / prize / # teams** · **data** (modality,
+**best public notebook score** (the de-facto floor — the loop starts from that notebook and must
+beat it) · **deadline / prize / # teams** · **data** (modality,
 size, fits one Colab GPU?) · **why we might win** (the concrete edge) · **risks**
 (saturated LB, leakage bans, huge data, code-competition limits) · **effort** (S/M/L +
 rough wall-clock per Colab experiment) · **kaggloop fit (1–5)** (how well it suits this

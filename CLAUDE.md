@@ -44,15 +44,19 @@ is spent:
 0. **`/kaggloop-scout`** — human picks the competition (URL/slug, or discovery shortlist).
    Creates the project + `TLDR.md`; you present **go/no-go**. *(The one mandatory human gate.)*
 1. **`/kaggloop-survey`** — **read every competition tab thoroughly, broad-first**
-   (Overview/Data/**Code**/**Discussion**/**Rules**/Leaderboard); build `dossier.md`: exact
+   (Overview/Data/**Code**/**Discussion**/**Rules**/Leaderboard); **sync + read the top-5
+   Public-Score notebooks** (`kloop.notebooks sync` — the iron rule; the best one becomes the
+   baseline); build `dossier.md`: exact
    metric, leakage-safe **CV**, rules/limits; **rank the leaderboard + reverse-engineer the
    top-scoring notebooks** (trace the working submission format), mine discussions + papers
-   (science MCP); **set `target_score`**.
+   (science MCP); **set `target_score`** (above the best-public floor).
 2. **`/kaggloop-hypothesize`** — **the highest-leverage stage; the competition is won or lost
    here.** Begin with a **mandatory re-recon** (read `recon.md` + the last ≤5 iteration journals
-   → rescan the leaderboard + newest/top-scoring notebooks + discussions + fresh papers,
+   → **re-run the top-5 sync** (byte-deduped — read only real NEW/UPDATED deltas) + rescan the
+   leaderboard + discussions + fresh papers,
    gap-driven → append a dated entry to `recon.md`), then rank critical-to-win, gap-driven bets in
-   the ledger — including **≥1 breakthrough moonshot**.
+   the ledger — including **≥1 breakthrough moonshot**. Below the public floor, bet #1 is always
+   closing to the best public notebook.
 3. **`/kaggloop-experiment`** — implement the top bets; run on **Colab** (or reproduce the eval
    harness locally for code comps); score on the CV; **run the leakage gate on each result**;
    keep what improves CV leak-free, prune the rest; save OOF/test preds.
@@ -85,16 +89,32 @@ sharp, well-grounded hypothesis can leapfrog the board. Invest the most thought 
   **Data**, **Code**, **Discussion**, **Rules** (+ Leaderboard) — and investigate **broadly**
   before you narrow. Wide-first reading is the cheapest, richest signal and prevents expensive
   mistakes later; fan out with sub-agents when there's a lot to cover.
-- **Read the board, then reverse-engineer the winners — every loop, logged.** Each round
-  (**mandatory inside `hypothesize`**), pull the leaderboard and study the **highest-scoring** and
-  most-recent public notebooks + discussions — ranked by *score*, not just votes (cross-reference
-  top-LB teams with their public kernels/working-notes) — and **append the findings to the
-  cumulative recon log `projects/<name>/recon.md`** (dated + iteration-tagged: board Δ, new public
+- **THE IRON RULE — sync + read the top-5 Public-Score notebooks, every loop (enforced).** Each
+  round (survey, then **mandatory inside every `hypothesize`**), sort the competition's Code tab
+  by best **Public Score** and run `python -m kloop.notebooks sync`: it pulls the top 5 into
+  `projects/<name>/notebooks/` and **byte-compares each against the previous download** — a
+  byte-identical pull is `UNCHANGED` (no update, no re-read); only genuinely `NEW`/`UPDATED`
+  notebooks are stored (replaced versions archived under `_archive/` for diffing), and **every
+  new delta gets read end-to-end**, its Public Score (off the Code tab — the CLI returns order,
+  not values) + stealable techniques logged to `recon.md`. `kloop.project set` **refuses to close
+  survey/hypothesize without a fresh sync** (only `scoring_mode=judged` is exempt — no Public
+  Scores; exemplar writeups replace it).
+- **The best public notebook is the baseline — learn from the winners, then innovate.** Never
+  start from scratch-written code while a stronger public notebook exists: iteration 0
+  **reproduces the top synced notebook** (adapted to the dossier CV + gate artifacts), its Public
+  Score is the **floor** (`target_score` sits strictly above it — at/below it we lose to
+  copy-paste), and every breakthrough is built **on top of** that baseline. Whenever a sync shows
+  the best public notebook above our current best, closing to it is automatically the next
+  round's #1 bet.
+- **Read the board, then reverse-engineer the winners — every loop, logged.** Each round, pull
+  the leaderboard and cross-reference top-LB teams with their public kernels/working-notes +
+  discussions, and **append the findings to the cumulative recon log
+  `projects/<name>/recon.md`** (dated + iteration-tagged: board Δ, top-5 sync deltas, new public
   tricks, fresh papers, so-what → bets), so every loop reads and builds on the last instead of
   re-deriving it. **Trace a currently-working solution's exact submission plumbing/format and
   match it before writing your own** — verify the *scoring facts* against the SDK (notebooks go
-  stale), but copy the *format* from something that actually scored. Cheapest way to not burn
-  submissions.
+  stale), but copy the *format* from something that actually scored (the synced top-5 are the
+  first place to look). Cheapest way to not burn submissions.
 - **Primary sources over guesses — always.** When anything is uncertain (why a score or error,
   what the metric really does, whether an idea holds), **do not speculate-then-act — go to the
   source of truth first**: read the SDK/harness code, reproduce it locally, pull a *working*
@@ -156,7 +176,9 @@ reconnaissance log — dated board/notebook/discussion/paper findings, one entry
 lines, per iteration) · `iterations/iter_<NNN>_*.md` (per-iteration learning journals) ·
 `decisions.jsonl` (append-only
 decision journal) · `gate.json` + `gate_checks.json` · `judge_rubric.md`/`judge_rubric.json` +
-`judge/iter_<NNN>.json` (judged/no-leaderboard comps) · `code/` (all implementation + verification
+`judge/iter_<NNN>.json` (judged/no-leaderboard comps) · `notebooks/` (synced top-5 Public-Score
+notebooks + `manifest.json` + per-ref `_archive/` — the iron rule's local copies) · `code/` (all
+implementation + verification
 code) · `experiments/{jobs,results,plots}` · `submissions/` (+`leaderboard.jsonl`) · `notes/` ·
 `data/`. Contents are **gitignored by default** so the public repo stays clean; see
 `projects/README.md` for the un-ignore toggle for private forks.
@@ -165,6 +187,7 @@ code) · `experiments/{jobs,results,plots}` · `submissions/` (+`leaderboard.jso
 ```bash
 python -m kloop.project new|show|set|gap|list ...   # project state + target/gap (the compass)
 python -m kloop.kaggle  list|files|kernels|leaderboard|submit|submissions ...
+python -m kloop.notebooks sync|list ...             # top-5 Public-Score notebook sync (byte-deduped) — the iron rule
 python -m kloop.ledger  add|update|list ...         # hypothesis ledger
 python -m kloop.gate    check|checklist|affirm|verify ...   # data-leakage quality gate
 python -m kloop.journal log|show ...                # append-only decision journal (observability)
@@ -198,7 +221,10 @@ have no OOF/CV arrays to check — there the **judge-rubric gate** below replace
 Some competitions are **not auto-scored to a numeric leaderboard**: writeup / analytics /
 hackathon / "strategy" categories where the submission is a **Kaggle Writeup** judged by
 humans. There is no `submission.csv` score and no LB number to be the loop's `actual`. When
-survey detects this (classify the **scoring mode**: `automated` vs `judged`, or `hybrid`), the
+survey detects this (classify the **scoring mode**: `automated` vs `judged`, or `hybrid` —
+recorded via `kloop.project set --scoring-mode ...`; `judged` is also the only mode exempt from
+the top-notebook-sync enforcement, since its Code tab has no Public Scores — exemplar writeups
+play that role), the
 gap loop is **forced** onto a surrogate compass — a rigorous, quantitative **LLM-as-Judge
 rubric** — and the round may **not** finalize without it:
 
@@ -314,5 +340,12 @@ notebooks, discussions). Keep **submissions on the `kaggle` CLI + `kloop.kaggle`
   cap). Submitting acts on the user's real Kaggle account.
 - **Code/comments/docs in English; console output in Japanese.** Hook *decision reasons*
   (guard deny / autopilot) are agent-facing instructions and stay English.
+- **Git: no feature branches — everything lands on `main`; ship = immediate push.** Work
+  directly on `main` (this repo intentionally overrides the "branch first" default). When you
+  judge the work shippable — modules compile (`python -m py_compile kloop/*.py`), touched
+  helpers smoke-run, `python -m kloop.selfimprove hookcheck` passes after any hook edit —
+  commit to `main` and **push to `origin main` right away**, without waiting for approval.
+  Don't leave shippable work uncommitted; if a stray feature branch exists, fold it into
+  `main` and delete it. (`projects/` contents stay gitignored as before.)
 - Keep `kloop` helpers **thin** (mechanics; the intelligence is in the skills/you). Don't
   commit `.venv/`, project contents, downloaded data, or secrets (see `.gitignore`).

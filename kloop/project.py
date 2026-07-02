@@ -19,7 +19,7 @@ import argparse
 import json
 import sys
 
-from . import state
+from . import notebooks, state
 
 
 def _resolve(name: str | None) -> str:
@@ -49,6 +49,7 @@ def cmd_set(args) -> int:
     fields = {
         "stage": args.stage, "status": args.status, "competition": args.competition,
         "metric": args.metric, "metric_direction": args.metric_direction,
+        "scoring_mode": args.scoring_mode,
         "target_score": args.target_score, "target_rationale": args.target_rationale,
         "iteration": args.iteration, "best_cv": args.best_cv, "best_lb": args.best_lb,
         "best_submission": args.best_submission,
@@ -78,6 +79,22 @@ def cmd_set(args) -> int:
                 f"意思決定ログが未記録です。`python -m kloop.journal log --kind ... "
                 f"--decision ... --rationale ...` で記録するか、この set に "
                 f"--decision/--rationale を付けてください（observability 強制）。",
+                file=sys.stderr,
+            )
+            return 2
+
+    # Iron-rule enforcement: survey/hypothesize cannot close without a fresh
+    # top-notebook sync (Code tab sorted by best Public Score, top-5, byte-deduped
+    # local copies — see kloop.notebooks). Judged comps have no Public Scores on
+    # the Code tab, so scoring_mode=judged skips this (exemplar writeups replace it).
+    if st.get("status") in ("done", "complete") and st.get("stage") in ("survey", "hypothesize") \
+            and st.get("scoring_mode") != "judged":
+        fresh, why = notebooks.sync_freshness(name, st)
+        if not fresh:
+            print(
+                f"✗ stage '{st['stage']}' (iter {st['iteration']}) を done にできません: {why} "
+                f"鉄則: 毎ループ Public Score 上位5ノートブックを同期・読了してから閉じること — "
+                f"`python -m kloop.notebooks sync --name {name}` を実行してください。",
                 file=sys.stderr,
             )
             return 2
@@ -171,6 +188,8 @@ def main(argv=None) -> int:
     pset.add_argument("--metric", default=None)
     pset.add_argument("--metric-direction", dest="metric_direction",
                       choices=["maximize", "minimize"], default=None)
+    pset.add_argument("--scoring-mode", dest="scoring_mode",
+                      choices=["automated", "judged", "hybrid"], default=None)
     pset.add_argument("--target-score", dest="target_score", type=float, default=None)
     pset.add_argument("--target-rationale", dest="target_rationale", default=None)
     pset.add_argument("--iteration", type=int, default=None)

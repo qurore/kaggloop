@@ -94,9 +94,10 @@ def leaderboard(competition: str, download_to: str = "") -> int:
     return _run(["competitions", "leaderboard", competition, "-s"])  # --show top of LB
 
 
-def kernels(competition: str, sort_by: str = "voteCount", n: int = 20,
+def kernels(competition: str, sort_by: str = "scoreDescending", n: int = 20,
             language: str = "", kernel_type: str = "") -> int:
-    """List public notebooks attached to a competition (top by votes by default)."""
+    """List public notebooks attached to a competition (best Public Score first
+    by default — use scoreAscending for minimize metrics, voteCount for buzz)."""
     args = ["kernels", "list", "--competition", competition,
             "--sort-by", sort_by, "--page-size", str(n), "-v"]
     if language:
@@ -152,7 +153,8 @@ def main(argv=None) -> int:
 
     pk = sub.add_parser("kernels", help="list top public notebooks for a competition")
     pk.add_argument("competition")
-    pk.add_argument("--sort-by", dest="sort_by", default="voteCount")
+    pk.add_argument("--sort-by", dest="sort_by", default="scoreDescending",
+                    help="scoreDescending (default) / scoreAscending / voteCount / dateRun ...")
     pk.add_argument("-n", type=int, default=20)
     pk.add_argument("--language", default="")
     pk.add_argument("--kernel-type", dest="kernel_type", default="")

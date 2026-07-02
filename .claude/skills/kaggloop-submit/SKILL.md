@@ -101,7 +101,11 @@ the tabular flow below (ensemble → leakage gate → `kaggle submit` CSV) does 
    ```
    Read the standing: how far is our realized score from the **bronze/silver/gold lines** and
    from `top`? Did LB move with CV? Is the gap from underfitting, a CV↔LB mismatch (shake-up /
-   leakage / distribution shift), or a metric/post-processing miss? **Never overfit to the public
+   leakage / distribution shift), or a metric/post-processing miss? **And check the public
+   floor:** is our realized score still below the best public notebook's Public Score (the synced
+   top-5 — `python -m kloop.notebooks list` + `recon.md`)? Below the floor, the gap analysis must
+   explain *why we underperform code anyone can fork*, and closing to that baseline (adapt it —
+   it's local) is next loop's #1 bet before any exotic idea. **Never overfit to the public
    LB** — trust CV. Journal the analysis (required to close the stage):
    ```bash
    python -m kloop.journal log --kind gap_analysis \
@@ -119,9 +123,11 @@ the tabular flow below (ensemble → leakage gate → `kaggle submit` CSV) does 
    ## Predicted score          # the number you expected BEFORE submitting + how you derived it
    ## Actual score             # the real LB (traceable to leaderboard.jsonl / Kaggle); "blank COMPLETE"⇒verify it's not a failure
    ## Gap                      # predicted−actual AND target−actual; was the prediction right?
-   ## Gap investigation        # WHY the gap — verified against real resources: public notebooks
-                               #   (kernel-pull), discussions, the science MCP (arxiv/semantic-scholar),
-                               #   the SDK source, a local harness repro. Cite each. No hand-waving.
+   ## Gap investigation        # WHY the gap — verified against real resources: the synced top-5
+                               #   notebooks (projects/<name>/notebooks/), discussions, the science
+                               #   MCP (arxiv/semantic-scholar), the SDK source, a local harness
+                               #   repro. Cite each. No hand-waving. Include: above or below the
+                               #   best public notebook's score, and why.
    ## Next iteration — plan & resolve   # the concrete方針 for what to try/investigate next, and why
    ```
    Fill every section from real evidence (a predicted-vs-actual number with no derivation, or a
@@ -190,8 +196,10 @@ If the competition ships an **SDK / evaluation harness** in its data and you sub
 does **not** map 1:1. Hard-won rules — follow them to avoid wasting the daily submission cap:
 
 1. **Copy a currently-working, recently-scored public notebook's submission mechanics BEFORE
-   writing your own.** Pull the top *non-stale* notebook (`kernel-pull`), read the `serve()` /
-   output cells, and match them exactly. Reinventing the harness plumbing from the SDK alone
+   writing your own.** The top-5 by Public Score are already synced locally
+   (`projects/<name>/notebooks/` — the iron rule; `python -m kloop.notebooks sync` refreshes,
+   byte-deduped): read the best *non-stale* one's `serve()` / output cells and match them
+   exactly. Reinventing the harness plumbing from the SDK alone
    is how you burn submissions on avoidable errors. (Verify scoring facts against the SDK, but
    copy the *plumbing* from a notebook that actually scored.)
 2. **The version must OUTPUT the required file.** Kaggle re-runs your notebook privately with
@@ -233,6 +241,11 @@ does **not** map 1:1. Hard-won rules — follow them to avoid wasting the daily 
    The `guard_submission` gate still applies. A **`403 CreateCodeSubmission`** that persists
    after the gate usually means the account needs **identity verification** (Persona,
    phone/webcam) — a human-only KYC step: surface it to the user and do not attempt it.
+   **Exact filename precondition:** some file-based comps enforce a fixed submission filename
+   (e.g. `submission.zip`); a differently-named upload → **`400 FAILED_PRECONDITION`
+   "Submission files must be named …"** (not a gate/auth error). Copy your artifact to the
+   required name and submit that (the required name is in the dossier/`competition.json`
+   `submission.format`). Confirmed on neurogolf-2026: `iter003_merge.zip` 400s, `submission.zip` works.
 6. **A `COMPLETE` submission with a *blank* public score is usually a failure, not a zero** —
    check the Submissions page (score vs "Submission Format Error") and the leaderboard before
    recording anything. Never journal a fabricated score.

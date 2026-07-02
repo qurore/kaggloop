@@ -11,6 +11,8 @@ HUMAN choose the theme fast. Fill every field; write "?" if unknown rather than 
 |              |                                   |
 |--------------|-----------------------------------|
 | Metric       | `<exact metric>` (<maximize/minimize>) |
+| Scoring mode | <automated LB / judged writeup / hybrid> |
+| Best public  | <best public notebook's Public Score — the de-facto floor the loop starts from and must beat> |
 | Deadline     | <date>  ·  <N days left>          |
 | Prize / type | <$ or knowledge>  ·  <featured/research/playground/code> |
 | Teams        | <count>  ·  Submissions/day: <N>  |

@@ -19,6 +19,8 @@ projects/<name>/
   progress.jsonl      # target-vs-actual history per iteration (the loop's gap log)
   gate.json           # leakage quality-gate result (must pass before submitting)
   gate_checks.json    # detailed gate check + checklist record
+  notebooks/          # synced top-5 Public-Score notebooks (kloop.notebooks sync; byte-deduped,
+                      #   manifest.json + per-ref _archive/ of replaced versions) — the iron rule
   code/               # ALL implementation + verification code (snapshotted into Colab jobs)
   experiments/
     jobs/  results/  plots/   # submitted job specs, ingested Colab results, figures

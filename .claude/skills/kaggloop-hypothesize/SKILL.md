@@ -1,6 +1,6 @@
 ---
 name: kaggloop-hypothesize
-description: Stage 2 of the kaggloop win-loop and its highest-leverage stage — where the competition is won or lost. Begin each round with a mandatory re-recon (rescan the leaderboard + top/newest notebooks, discussions, and fresh papers, driven by the gap and prior iterations; log it to the cumulative recon.md), then generate, ground, and rank critical-to-win hypotheses (AI-Scientist-v2 style) — each a concrete testable bet about what will move the score toward the target, grounded in the recon and the academic literature. On later iterations it is driven by the gap to target. Use after survey, or at the start of each new loop iteration. Output an updated recon.md and a ranked hypotheses.jsonl ledger.
+description: Stage 2 of the kaggloop win-loop and its highest-leverage stage — where the competition is won or lost. Begin each round with a mandatory re-recon — the iron rule first (sync + read the top-5 best-Public-Score notebooks via kloop.notebooks, byte-deduped; enforced at stage close), then the leaderboard, discussions, and fresh papers, driven by the gap and prior iterations; log it to the cumulative recon.md — then generate, ground, and rank critical-to-win hypotheses (AI-Scientist-v2 style) — each a concrete testable bet about what will move the score toward the target, built on top of the best public baseline and grounded in the recon and the academic literature. On later iterations it is driven by the gap to target. Use after survey, or at the start of each new loop iteration. Output an updated recon.md and a ranked hypotheses.jsonl ledger.
 ---
 
 # Stage 2 — Hypothesize (critical-to-win bets, gap-driven)
@@ -35,16 +35,31 @@ ranked by expected value, recorded in the ledger for the experiment stage to ver
 - **MANDATORY RE-RECON — refresh the intel, then log it to `recon.md`.** The board and the public
   solutions move constantly; stale intel breeds stale bets. Before brainstorming, re-scan — driven
   by the **current gap** and the prior journals (skip what hasn't changed, hunt what has):
+  - **THE IRON RULE — top-5 Public-Score notebook sync (first, inline, every loop; enforced):**
+    ```bash
+    python -m kloop.notebooks sync     # Code tab sorted by best Public Score → top 5, byte-deduped
+    ```
+    The helper pulls the current top-5 (score-descending; ascending picked automatically for
+    minimize metrics) and **byte-compares each against the previous download**: `UNCHANGED`
+    (byte-identical — no update) needs no re-read; **read every `NEW`/`UPDATED` notebook
+    end-to-end** — for `UPDATED`, diff against the archived copy under `_archive/`, because *the
+    delta is the news* — and record each one's **Public Score** (read it off the Code tab /
+    notebook page; the CLI returns the order but not the values) plus the stealable techniques
+    into `recon.md`. `kloop.project set` **refuses to close this stage without a sync from this
+    iteration** (judged comps excepted — no Public Scores). If the best public notebook now beats
+    our current best score, **closing to it (adapt its code — it's already local) is this round's
+    #1 bet** — never chase exotic ideas while losing to copy-paste.
   - **Leaderboard** — `python -m kloop.kaggle leaderboard <comp>` + `python -m kloop.standing
     snapshot` (our score vs top/gold/silver/bronze lines; movement since last loop).
-  - **Top & newest public notebooks + discussions** — ranked by *score*, not just votes (kaggle
-    MCP / `python -m kloop.kaggle kernels`) — anything new since the last recon: a fresh trick, a
-    higher-scoring kernel, a magic feature, a format/timeout gotcha.
+  - **Discussions (+ beyond-top-5 notebooks)** — anything new since the last recon (kaggle MCP /
+    `python -m kloop.kaggle kernels`): a fresh trick, a rising kernel outside the top-5, a magic
+    feature, a format/timeout gotcha, a leak warning.
   - **Fresh literature** — `mcp__arxiv__*` / `mcp__semantic-scholar__*` for just-published methods
     matching the task/metric (especially fuel for the moonshot).
   - **Parallelize by default** — when ≥2 of these axes need a fresh scan, run them as concurrent
-    sub-agents per the **parallel recon protocol** below; only the board/standing snapshot stays
-    inline (it's one command).
+    sub-agents per the **parallel recon protocol** below; the board/standing snapshot **and the
+    top-5 sync** stay inline (one command each; the sync writes project files, which sub-agents
+    must not).
   Then **prepend a dated entry to `projects/<name>/recon.md`** (newest on top; structure below)
   and journal it:
   ```bash
@@ -81,7 +96,8 @@ untrusted data). One entry per loop, using this template:
 ## iter <NNN> — <YYYY-MM-DD> — <survey-baseline | hypothesize>
 - **Gap now:** target <T> vs best cv/lb <…> (gap <…>); prior-journal plan adopted? <yes/no — why>
 - **Leaderboard:** ours <…> vs top <…> / gold <…> / silver <…> / bronze <…>; Δ since last <…>
-- **Top / new notebooks (score-ranked):** <title — score — what's new / technique — ref>
+- **Top-5 sync (Public Score):** new <n> / updated <n> / unchanged <n>; per NEW/UPDATED ref:
+  <ref — Public Score — what's new / stealable technique>; **best public <score> vs ours <score>**
 - **Discussions (new/updated):** <title — key claim — ref>
 - **Papers (arxiv / s2):** <title — method — why relevant — id>
 - **Deltas since last recon:** <what changed on the board / new public tricks>
@@ -95,7 +111,11 @@ The recon axes are **independent**, so scan them **concurrently**: whenever ≥2
 discussions · literature) need a fresh look, spawn one Explore/general-purpose sub-agent per axis
 **in a single message**, then synthesize. This repo **durably authorizes** these read-only
 research fan-outs — don't wait to be asked. Serial scanning of independent axes wastes wall-clock;
-a single narrow lookup needs no agent. The board/standing snapshot always stays inline.
+a single narrow lookup needs no agent. The board/standing snapshot and the **top-5 notebook sync
+(`kloop.notebooks sync`) always stay inline** — the sync writes project files, which sub-agents
+must not. The notebooks-axis sub-agent then *reads* the freshly synced local copies under
+`projects/<name>/notebooks/` (NEW/UPDATED first; diff `_archive/` for UPDATED) and hunts only
+beyond-top-5 / score-value intel remotely.
 
 Each sub-agent starts cold — brief it fully, and make its return cheap to merge:
 
@@ -114,6 +134,11 @@ Each sub-agent starts cold — brief it fully, and make its return cheap to merg
   anything a digest raises gets verified inline or queued for the next loop's recon.
 
 ## What makes a good hypothesis here
+- **On or above the best public baseline.** Until the best public notebook's score is matched,
+  the #1-ranked bet each round is closing to it — its code is already synced locally under
+  `notebooks/`; adapt it, don't rewrite it. After parity, every bet is a measured delta **on top
+  of** that baseline. Starting below the public floor with scratch-written code is how you lose
+  to copy-paste.
 - **Critical-to-win, not generic.** Tie it to *this* metric, data, and CV, and to the
   remaining gap. "Add dropout" is weak; "group-aware OOF target encoding of `entity_id`
   should cut RMSE ~0.01 because top notebook N and arXiv:XXXX show leakage-safe TE helps on

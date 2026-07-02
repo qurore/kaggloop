@@ -144,6 +144,7 @@ def new_project(slug: str, competition: str = "", metric: str = "") -> str:
         "experiments/results",     # results ingested back from Colab
         "experiments/plots",       # figures
         "submissions",             # submission CSVs + leaderboard.jsonl
+        "notebooks",               # synced top-Public-Score notebooks + manifest.json
         "notes",                   # free-form MD: analyses, decisions, scratch
         "data",                    # local data scratch (also gitignored)
     ):
@@ -155,6 +156,7 @@ def new_project(slug: str, competition: str = "", metric: str = "") -> str:
         "competition": competition,    # kaggle competition slug
         "metric": metric,              # evaluation metric name
         "metric_direction": "",        # "maximize" | "minimize" (set during survey)
+        "scoring_mode": "",            # "automated" | "judged" | "hybrid" (set during survey)
         "target_score": None,          # the score we AIM to receive at submission
         "target_rationale": "",        # why that target (LB percentiles, medal line, ...)
         "stage": "scout",

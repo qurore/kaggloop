@@ -65,14 +65,23 @@ part of the system.
    literature) — each briefed on the current gap + prior recon and returning a ≤15-bullet,
    ref-backed digest that synthesis merges into `recon.md`. (See `/kaggloop-hypothesize` →
    "Parallel recon protocol".)
+9. **Stand on the winners — THE IRON RULE (enforced):** every loop (survey + each hypothesize)
+   sorts the Code tab by best **Public Score** and syncs the **top-5** notebooks locally —
+   `python -m kloop.notebooks sync` — **byte-deduped** (a pull byte-identical to the previous
+   download is `UNCHANGED` and needs no re-read; only real `NEW`/`UPDATED` deltas are stored,
+   old versions archived for diffing) — and reads every new delta end-to-end. The **best public
+   notebook is the baseline** the pipeline adapts and must beat: iteration 0 reproduces it (never
+   scratch-written code below the public floor), `target_score` sits above it, and breakthroughs
+   are built on top of it. `kloop.project set` refuses to close survey/hypothesize without a
+   fresh sync (judged comps excepted).
 
 ## The win-loop
 
 | Stage | Skill | Output | Human? |
 |------:|-------|--------|:------:|
 | 0. Scout       | `/kaggloop-scout`       | a project + `projects/<name>/TLDR.md` (or a discovery shortlist) | **picks** |
-| 1. Survey      | `/kaggloop-survey`      | `dossier.md`, CV scheme, **`target_score`** | auto |
-| 2. Hypothesize | `/kaggloop-hypothesize` | **re-recon (`recon.md`)** → ranked `hypotheses.jsonl` (gap-focused) | auto |
+| 1. Survey      | `/kaggloop-survey`      | `dossier.md`, **top-5 notebook sync** (`notebooks/`), CV scheme, **`target_score`** | auto |
+| 2. Hypothesize | `/kaggloop-hypothesize` | **top-5 re-sync + re-recon (`recon.md`)** → ranked `hypotheses.jsonl` (gap-focused) | auto |
 | 3. Experiment  | `/kaggloop-experiment`  | Colab results, CV, OOF preds, **per-experiment leakage checks** | auto |
 | 4. Submit      | `/kaggloop-submit`      | **gate verify** → ensemble → Kaggle submit → LB → **gap decision** → **self-improve pass** | auto |
 
@@ -129,6 +138,10 @@ blind/static output size times out → "Submission Format Error"). Full playbook
 
 ## Operating principles
 
+- **Learn from the winners first, then innovate.** Every round starts from the synced top-5
+  Public-Score notebooks (`kloop.notebooks sync` — the iron rule, enforced at survey/hypothesize
+  close); the best public notebook is the floor and the baseline, and moonshots are built on top
+  of it, never instead of it.
 - **Trust local CV, not the public LB.** Build a CV matching the metric and the
   competition's split; the LB is a small noisy validation set. The target/gap is on the
   realized score, but CV is what you optimize.
