@@ -21,7 +21,7 @@ This module is the local half: ``submit`` enqueues a job, ``status`` inspects th
 queue/results, and ``ingest`` pulls a finished job's artifacts back into the
 project's ``experiments/results/``. The worker half is ``colab/worker.py``.
 
-Console output is Japanese; code/comments are English.
+All console output, code, and comments are English.
 """
 
 from __future__ import annotations
@@ -50,7 +50,7 @@ def _results_dir() -> Path:
 def _resolve(run_id):
     rid = run_id or state.current_project()
     if not rid:
-        print("アクティブなプロジェクトがありません（--name を指定してください）", file=sys.stderr)
+        print("No active project (pass --name).", file=sys.stderr)
         raise SystemExit(2)
     return rid
 
@@ -63,7 +63,7 @@ def submit(run_id: str, entrypoint: str, args: list[str], requirements: str,
     code_dir = state.project_dir(rid) / "code"
     src = (code_dir / entrypoint)
     if not src.exists():
-        print(f"✗ エントリポイントが見つかりません: {src}", file=sys.stderr)
+        print(f"entrypoint not found: {src}", file=sys.stderr)
         raise SystemExit(2)
 
     job_id = f"{time.strftime('%Y%m%d_%H%M%S')}_{rid[:19]}_{Path(entrypoint).stem}"
@@ -90,10 +90,10 @@ def submit(run_id: str, entrypoint: str, args: list[str], requirements: str,
         "created": time.strftime("%Y-%m-%d_%H-%M-%S"),
     }
     (qdir / "job.json").write_text(json.dumps(job, indent=2, ensure_ascii=False))
-    print(f"✓ ジョブを投入しました: {job_id}")
-    print(f"  キュー: {qdir}")
-    print("  Colab ワーカーが稼働していれば自動で実行されます。"
-          "未起動なら colab/kaggloop_worker.ipynb を開いてください。")
+    print(f"job submitted: {job_id}")
+    print(f"  queue: {qdir}")
+    print("  It runs automatically if a Colab worker is up. "
+          "If not, open colab/kaggloop_worker.ipynb.")
     return job_id
 
 
@@ -109,16 +109,16 @@ def _job_result(job_id: str) -> dict | None:
 
 def status(job_id: str | None) -> int:
     qd, rd = _queue_dir(), _results_dir()
-    print(f"キュー:   {qd}")
-    print(f"結果:     {rd}")
+    print(f"queue:   {qd}")
+    print(f"results: {rd}")
     if job_id:
         res = _job_result(job_id)
         if res is None:
             qjob = qd / job_id / "job.json"
-            stt = "queued/実行中" if qjob.exists() else "不明（未投入）"
-            print(f"ジョブ {job_id}: {stt}（結果待ち）")
+            stt = "queued/running" if qjob.exists() else "unknown (not submitted)"
+            print(f"job {job_id}: {stt} (awaiting result)")
         else:
-            print(f"ジョブ {job_id}: 完了 ok={res.get('ok')} "
+            print(f"job {job_id}: done ok={res.get('ok')} "
                   f"metric={res.get('metric')} rc={res.get('returncode')} "
                   f"dur={res.get('duration_s')}s")
         return 0
@@ -126,7 +126,7 @@ def status(job_id: str | None) -> int:
     queued = sorted(p.name for p in qd.glob("*") if (p / "job.json").exists()) if qd.exists() else []
     done = sorted(p.name for p in rd.glob("*") if (p / "result.json").exists()) if rd.exists() else []
     pending = [j for j in queued if j not in done]
-    print(f"投入済み: {len(queued)}  / 完了: {len(done)}  / 未完了: {len(pending)}")
+    print(f"submitted: {len(queued)}  / done: {len(done)}  / pending: {len(pending)}")
     for j in pending:
         print(f"  ⏳ {j}")
     for j in done[-10:]:
@@ -144,13 +144,13 @@ def ingest(run_id: str, job_id: str | None) -> int:
         p.name for p in rd.glob("*") if (p / "result.json").exists()
     ]
     if not targets:
-        print("取り込める完了ジョブがありません。")
+        print("No completed jobs to ingest.")
         return 0
     n = 0
     for j in targets:
         src = rd / j
         if not (src / "result.json").exists():
-            print(f"  ! {j}: result.json なし（未完了）")
+            print(f"  ! {j}: no result.json (not finished)")
             continue
         dest = dest_root / j
         dest.mkdir(parents=True, exist_ok=True)
@@ -161,9 +161,9 @@ def ingest(run_id: str, job_id: str | None) -> int:
                 out.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(f, out)
         res = _job_result(j) or {}
-        print(f"  ✓ 取り込み: {j}  metric={res.get('metric')} -> {dest}")
+        print(f"  ingested: {j}  metric={res.get('metric')} -> {dest}")
         n += 1
-    print(f"完了: {n} 件のジョブ結果を取り込みました。")
+    print(f"done: ingested {n} job result(s).")
     return 0
 
 

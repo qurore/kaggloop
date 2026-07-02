@@ -105,9 +105,33 @@ Only a *structurally broken or leaky* challenge result is dropped — record tha
 with the hard blocker. In judged comps, the challenge experiment is the **bold variant of the
 deliverable**, judged blind with the same rubric.
 
+## Small-start probes — cheap validation of deferred bets (every round)
+
+The small-start Kanban (`kloop.smallstart board`) carries **backlog** tickets: expensive-to-build
+ideas filed in `/kaggloop-hypothesize`, each with a proposed cheap probe. Validate them here,
+thinly — a "small start", not the full build:
+
+1. **Run the probe** per the ticket's `smallstart_plan` (a starting proposal you may adapt): 1
+   fold, a subsample, a 2-layer stand-in, a partial draft. Keep it cheap — reuse the
+   data/CV/feature/metric code, and ideally fold it into an existing Colab job. Mark it started:
+   `python -m kloop.smallstart start --id sXXXX --job-id <job>`.
+2. **Triage on the measured result** — leakage-gate the probe like any result, then classify it
+   against its own `go_criteria` / `conditional_go`:
+   ```bash
+   # cleared the bar (or the conditional fallback): a full-impl candidate + a strength label
+   python -m kloop.smallstart triage --id sXXXX --verdict candidate \
+     --strength very_strong|strong|moderate --metric <probe number> --result "<what it showed>"
+   # refuted: discard with the reason (parked so it is never blindly re-tried)
+   python -m kloop.smallstart triage --id sXXXX --verdict discard --reason "<why>"
+   ```
+   The **strength** is your honest prediction of the full build's effect (`very_strong` = extremely
+   strong candidate, `strong`, `moderate` = promising but not strong) — the next loop's hypothesize
+   reads it to decide what to promote to a full bet. `kloop.project set` **refuses to close
+   experiment while any probe is left in `verifying`** — triage every probe you start.
+
 ## Close the stage
 A `hypothesis_kept`/`hypothesis_rejected` decision must be journaled (observability gate);
-then:
+also triage any small-start probe you started (above) so none is left in `verifying`; then:
 ```bash
 python -m kloop.project set --stage experiment --status done --note "round <iter>: kept <k>, rejected <r>"
 ```

@@ -150,6 +150,7 @@ def new_project(slug: str, competition: str = "", metric: str = "") -> str:
     ):
         (d / sub).mkdir(parents=True, exist_ok=True)
     (d / "hypotheses.jsonl").touch()
+    (d / "smallstart.jsonl").touch()   # small-start Kanban board (see kloop.smallstart)
     state = {
         "name": name,
         "slug": slugify(slug),

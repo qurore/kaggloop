@@ -9,6 +9,17 @@ Convert this round's kept models into the strongest valid submission, **pass the
 gate** (the submission guard will block you otherwise), push to Kaggle, record what the
 leaderboard says, then **compare to the target and study the gap** to decide the next move.
 
+**Both of this round's two submissions must attempt a NEW improvement — never a defensive
+resubmission of a past best (the two-way-door principle).** Submission **#1 (primary)** is this
+loop's **highest-confidence new improvement** — the kept, gap-closing bets applied on top of the
+current best, a genuine measured step forward, *not* a prior iteration's model re-submitted to
+guard the score. Submission **#2 (challenge)** is the low-confidence, high-variance home-run swing
+(step 5b). Because a submission is a **reversible door** — every earlier iteration's models and
+submissions are kept, Kaggle holds two final-selection slots, and a worse LB this round never
+erases a better earlier one — a bet that fails just means you **roll back and restart from the
+previous iteration**. The downside is bounded and undoable, so **always be aggressive: neither
+submission may be a score-protecting rehash.**
+
 ## Preconditions
 - `kept` hypotheses with OOF + test predictions under `experiments/results/`.
   `python -m kloop.project set --stage submit --status running`. A submission-format
@@ -173,14 +184,14 @@ the tabular flow below (ensemble → leakage gate → `kaggle submit` CSV) does 
    ## Challenge track          # the 2nd (challenge) submission: the bet, its LB vs the main sub,
                                #   verdict (leapfrog → new baseline / signal → sharpen / retire);
                                #   or the journaled challenge_deferred hard blocker
-   ## Next iteration — plan & resolve   # the concrete方針 for what to try/investigate next, and why
+   ## Next iteration — plan & resolve   # the concrete plan for what to try/investigate next, and why
    ```
    Fill every section from real evidence (a predicted-vs-actual number with no derivation, or a
    cause with no cited source, is a failed journal). This file — not memory — is how the loop
    compounds learning across iterations.
 
 6c. **Pipeline self-improvement (results-driven — the CHECK runs every loop, the EDIT only on
-   real improvement).** The pipeline upgrades itself, but strictly on 結果主義: only a *realized*
+   real improvement).** The pipeline upgrades itself, but strictly on results-ism: only a *realized*
    score improvement can trigger edits. After `gap --log` (and the iteration journal), run:
    ```bash
    python -m kloop.selfimprove check      # pass --name when multiple projects run concurrently
@@ -230,7 +241,9 @@ the tabular flow below (ensemble → leakage gate → `kaggle submit` CSV) does 
      python -m kloop.project set --stage submit --status done --iteration <N+1> \
         --decision "loop: close gap via <plan>" --decision-kind loop_decision
      ```
-     then `/kaggloop-hypothesize` (carry forward kept models + the gap analysis).
+     then `/kaggloop-hypothesize` (carry forward kept models + the gap analysis; its re-recon
+     reviews the small-start board — promote/defer/drop each open candidate from this round's
+     probes, enforced).
    - **Budget spent, target unmet:** finalize honestly with the best submission and the gap
      recorded.
 

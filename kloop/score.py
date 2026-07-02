@@ -7,10 +7,10 @@ mechanics: a metric registry, OOF blending (mean / weighted / rank), and a
 greedy blend search.
 
 numpy / scikit-learn are imported lazily so this module loads even where they're
-absent; the helpers raise a clear (Japanese) message telling you to run
+absent; the helpers raise a clear message telling you to run
 ``scripts/setup.sh`` if a dependency is missing.
 
-Console output is Japanese; code/comments are English.
+All console output, code, and comments are English.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ def _np():
         import numpy as np  # noqa
         return np
     except ImportError:
-        print("✗ numpy が必要です。`bash scripts/setup.sh` を実行してください。",
+        print("numpy is required. Run `bash scripts/setup.sh`.",
               file=sys.stderr)
         raise SystemExit(3)
 
@@ -36,7 +36,7 @@ def _sklearn_metrics():
         from sklearn import metrics  # noqa
         return metrics
     except ImportError:
-        print("✗ scikit-learn が必要です。`bash scripts/setup.sh` を実行してください。",
+        print("scikit-learn is required. Run `bash scripts/setup.sh`.",
               file=sys.stderr)
         raise SystemExit(3)
 
@@ -139,7 +139,7 @@ def greedy_blend(metric: str, y_true, oofs: dict, n_steps: int = 50):
 # --------------------------------------------------------------------------- CLI
 
 def cmd_metrics(args) -> int:
-    print("利用可能なメトリクス:")
+    print("Available metrics:")
     for n in metric_names():
         print(f"  {n:10s} ({direction(n)})")
     return 0
@@ -159,7 +159,7 @@ def cmd_blend(args) -> int:
     weights = [float(w) for w in args.weights] if args.weights else None
     out = blend(arrs, weights, rank=args.rank)
     _np().save(args.out, out)
-    print(f"✓ ブレンド結果を保存: {args.out}  (shape={out.shape})")
+    print(f"blend saved: {args.out}  (shape={out.shape})")
     if args.metric and args.y_true:
         s = score(args.metric, _load_array(args.y_true), out)
         print(json.dumps({"metric": args.metric, "blend_score": s}, ensure_ascii=False))

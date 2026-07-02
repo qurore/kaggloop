@@ -164,13 +164,45 @@ Each sub-agent starts cold — brief it fully, and make its return cheap to merg
   exploit, a just-published method from the science MCP. Design it as a **thin verification layer
   on top of this round's standard pipeline** (≤1 extra Colab job / one bold delta — cheap because
   it reuses everything the standard bets build), because it is not just an idea: it becomes the
-  round's **second, challenge submission** in `/kaggloop-submit` — the standard submission banks
-  the expected gain, the challenge submission buys leaderboard upside. `kloop.project set`
-  **refuses to close this stage without a live challenge-track bet for this iteration.** Grounded
-  moonshots win; pure incrementalism plateaus. Be bold in the bet, ruthless in the verification.
+  round's **second, challenge submission** in `/kaggloop-submit`. Both of the round's submissions
+  attempt a new improvement (the two-way-door principle — never a defensive resubmission): the
+  **primary submission cashes this loop's highest-confidence new improvement** (the standard kept
+  bets), and the **challenge submission buys leaderboard upside** with the low-confidence home-run
+  swing. `kloop.project set` **refuses to close this stage without a live challenge-track bet for
+  this iteration.** Grounded moonshots win; pure incrementalism plateaus, but a defensive rehash is
+  worse — be bold in both, ruthless in the verification.
 - **Primary sources, not guesses.** Ground each bet in something you actually read — a working
   notebook, the SDK/source, a paper, a discussion, a local repro — and cite it. If a bet rests on
   an assumption you haven't verified, verify it first.
+
+## Small-start Kanban — review the board, then file new tickets (enforced)
+
+Expensive-but-promising ideas neither die nor get over-built — they go on the per-project
+**small-start Kanban** (`kloop.smallstart`, `projects/<name>/smallstart.jsonl`), separate from the
+hypothesis ledger. Two things happen here every loop, both part of the re-recon / meta-learning:
+
+- **Review every OPEN full-impl candidate** the last loop's probes produced —
+  `python -m kloop.smallstart board` lists them strongest-first with their strength label and
+  Go/conditional criteria. Decide each against its own `go_criteria` / `conditional_go`:
+  - `python -m kloop.smallstart promote --id sXXXX` — the probe cleared the quantitative bar (or the
+    conditional fallback): build it **now** — register a full bet in the ledger this round
+    (`kloop.ledger add ...`, using the ticket's `smallstart_plan` as a starting proposal you may
+    adapt), so `/kaggloop-experiment` implements it.
+  - `python -m kloop.smallstart defer --id sXXXX --reason ...` — still promising, but not this loop.
+  - `python -m kloop.smallstart drop --id sXXXX --reason ...` — the probe refuted it.
+  `kloop.project set` **refuses to close hypothesize while any open candidate is un-reviewed this
+  loop** — the board is *used* in the full-implementation decision, never left to accrete.
+- **File new tickets** for ideas **too costly to fully build now but cheap to probe** — especially
+  bold, interdisciplinary ones (a small-start ticket may be `--track challenge`). Every ticket
+  needs all three mandatory fields (enforced at `add`): a *quantitative* full-impl Go/No-Go bar, a
+  fallback that still qualifies it if that bar is missed, and a *proposed* cheap probe:
+  ```bash
+  python -m kloop.smallstart add --title "<idea>" \
+    --go-criteria "<quantitative full-impl Go/No-Go, e.g. probe RMSE improvement >= 0.3 leak-free>" \
+    --conditional-go "<still a candidate if the bar is missed, e.g. OOF corr < 0.5 with the ensemble>" \
+    --smallstart-plan "<a proposed cheap probe — a suggestion, not binding>" --effort-full L
+  ```
+  `/kaggloop-experiment` then runs the probe and triages it into candidate(+strength) / discard.
 
 ## Procedure
 1. **Brainstorm from the fresh recon** — turn the `recon.md` entry you just wrote (board Δ, new
@@ -206,7 +238,8 @@ Each sub-agent starts cold — brief it fully, and make its return cheap to merg
    python -m kloop.project set --stage hypothesize --status done --note "<n> hypotheses ranked"
    ```
    (The `set` refuses to close without a fresh top-5 sync **and** a live challenge-track bet
-   for this iteration — the dual-submission mandate.)
+   for this iteration — the dual-submission mandate — **and** while any open small-start candidate
+   is un-reviewed this loop; see "Small-start Kanban" above.)
 
 ## Output to the user
 A ranked shortlist: each bet's title, one-line rationale + source, expected Δ, confidence,

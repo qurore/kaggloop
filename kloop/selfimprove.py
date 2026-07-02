@@ -1,4 +1,4 @@
-"""Results-driven pipeline self-improvement — mechanics only (結果主義).
+"""Results-driven pipeline self-improvement — mechanics only (results-ism).
 
 At the tail of EVERY loop iteration (the end of ``/kaggloop-submit``) the agent
 asks: *did this round actually improve the realized score?* Only when the answer
@@ -14,7 +14,7 @@ intelligence (the retrospective, the lesson, the edit) stays in the skill:
 
 The trigger is a *realized* score delta computed from ``progress.jsonl`` — never
 a hunch. The self-improvement log is append-only, like ``decisions.jsonl`` (the
-exec guard protects both). Console output is Japanese; code/comments are English.
+exec guard protects both). All console output, code, and comments are English.
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ DEFAULT_SIG_FRAC = float(os.environ.get("KLOOP_SELFIMPROVE_SIG_FRAC", "0.10"))
 def _resolve(name):
     n = name or state.current_project()
     if not n:
-        print("アクティブなプロジェクトがありません（--name を指定してください）", file=sys.stderr)
+        print("No active project (pass --name).", file=sys.stderr)
         raise SystemExit(2)
     return n
 
@@ -98,8 +98,8 @@ def cmd_check(args) -> int:
     if not rows:
         out["first_score"] = True
         print(json.dumps(out, indent=2, ensure_ascii=False))
-        print("→ 進捗履歴がありません（`kloop.project gap --log` の後に実行してください）。"
-              "自己改良は行わず、記録のみ。", file=sys.stderr)
+        print("No progress history yet (run this after `kloop.project gap --log`). "
+              "Do not self-improve; only record.", file=sys.stderr)
         return 0
 
     best = max if direction == "maximize" else min
@@ -112,7 +112,7 @@ def cmd_check(args) -> int:
     if not prev_rows:
         out["first_score"] = True
         print(json.dumps(out, indent=2, ensure_ascii=False))
-        print("→ 初回スコア（比較基準なし）。通常は自己改良せず `log` で記録のみ。", file=sys.stderr)
+        print("First score (no baseline to compare). Normally do not self-improve; just `log` it.", file=sys.stderr)
         return 0
 
     prev_best = best(float(r["actual"]) for r in prev_rows)
@@ -135,17 +135,17 @@ def cmd_check(args) -> int:
                 "significant": significant})
     print(json.dumps(out, indent=2, ensure_ascii=False))
     if improved and significant:
-        print(f"→ 大幅改善（Δ={delta:+.6g}"
-              + (f"、残ギャップの{gap_closed_frac:.0%}を解消" if gap_closed_frac is not None else "")
-              + "）。成功要因を分析し、一般化できる教訓があれば skills/hooks/CLAUDE.md を"
-                "自己改良（必ず selfimprove log + journal で記録）。", file=sys.stderr)
+        print(f"Large improvement (delta={delta:+.6g}"
+              + (f", closed {gap_closed_frac:.0%} of the remaining gap" if gap_closed_frac is not None else "")
+              + "). Analyze what worked; if a generalizable lesson exists, self-improve "
+                "skills/hooks/CLAUDE.md (always record via selfimprove log + journal).", file=sys.stderr)
     elif improved:
-        print(f"→ 改善（小幅 Δ={delta:+.6g}）。教訓が明確な場合のみ自己改良を検討。"
-              "いずれにせよ log で記録。", file=sys.stderr)
+        print(f"Improvement (small, delta={delta:+.6g}). Self-improve only if the lesson is clear. "
+              "Either way, record it via log.", file=sys.stderr)
     else:
-        print(f"→ 改善なし（Δ={delta:+.6g}）。パイプラインは一切変更しない"
-              "（`log --action no_improvement`）。直前ループで自己改良していた場合は"
-              "その変更をリグレッション容疑として revert を検討。", file=sys.stderr)
+        print(f"No improvement (delta={delta:+.6g}). Do not change the pipeline at all "
+              "(`log --action no_improvement`). If the previous loop self-improved, "
+              "consider reverting that change as a regression suspect.", file=sys.stderr)
     return 0
 
 
@@ -174,7 +174,7 @@ def cmd_log(args) -> int:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a") as f:
         f.write(json.dumps(rec, ensure_ascii=False) + "\n")
-    print(f"✓ 自己改善ログを記録: [{name}#{iteration}] {args.action}: {args.analysis}")
+    print(f"self-improvement logged: [{name}#{iteration}] {args.action}: {args.analysis}")
     return 0
 
 
@@ -191,20 +191,20 @@ def cmd_list(args) -> int:
                     pass
     rows = rows[-args.n:] if args.n else rows
     if not rows:
-        print("（自己改善ログはまだありません）")
+        print("(no self-improvement log yet)")
         return 0
     for r in rows:
         extra = []
         if r.get("delta") is not None:
             extra.append(f"Δ={r['delta']}")
         if r.get("gap_closed_frac") is not None:
-            extra.append(f"閉gap率={r['gap_closed_frac']}")
+            extra.append(f"gap_closed_frac={r['gap_closed_frac']}")
         print(f"{r.get('ts')}  [{r.get('project')}#{r.get('iteration')}] "
               f"{r.get('action')}" + (("  " + " ".join(extra)) if extra else ""))
         if r.get("analysis"):
-            print(f"    分析: {r['analysis']}")
+            print(f"    analysis: {r['analysis']}")
         if r.get("files"):
-            print(f"    変更: {', '.join(r['files'])}")
+            print(f"    changed: {', '.join(r['files'])}")
         if r.get("rationale"):
             print(f"    └ {r['rationale']}")
     return 0
@@ -222,7 +222,7 @@ def cmd_hookcheck(args) -> int:
     hooks_dir = state.REPO / ".claude" / "hooks"
     files = sorted(hooks_dir.glob("*.py"))
     if not files:
-        print("（.claude/hooks/ に .py フックがありません）")
+        print("(no .py hooks in .claude/hooks/)")
         return 0
     failures = 0
     with tempfile.TemporaryDirectory(prefix="kloop-hookcheck-") as tmp:
@@ -234,27 +234,27 @@ def cmd_hookcheck(args) -> int:
             try:
                 py_compile.compile(str(f), cfile=os.path.join(tmp, f.name + "c"), doraise=True)
             except py_compile.PyCompileError as e:
-                problem = f"構文エラー: {str(e).splitlines()[0]}"
+                problem = f"syntax error: {str(e).splitlines()[0]}"
             if problem is None:
                 try:
                     p = subprocess.run(
                         [sys.executable, str(f)], input="{}", text=True,
                         capture_output=True, timeout=args.timeout, env=env, cwd=tmp)
                     if p.returncode != 0:
-                        problem = (f"スモーク実行 exit={p.returncode}: "
+                        problem = (f"smoke-run exit={p.returncode}: "
                                    f"{(p.stderr or p.stdout).strip()[:200]}")
                 except subprocess.TimeoutExpired:
-                    problem = f"スモーク実行タイムアウト（>{args.timeout}s）"
+                    problem = f"smoke-run timeout (>{args.timeout}s)"
             if problem:
                 failures += 1
                 print(f"  ✗ {f.name} — {problem}")
             else:
                 print(f"  ✓ {f.name}")
     if failures:
-        print(f"✗ {failures} 件のフックが壊れています — 直ちに元の内容へ復旧してください"
-              "（自己改良より復旧が優先）。", file=sys.stderr)
+        print(f"{failures} hook(s) are broken — restore the previous content immediately "
+              "(restoring takes priority over self-improvement).", file=sys.stderr)
         return 2
-    print("✓ 全フック正常（構文 + スモーク実行）")
+    print("all hooks OK (syntax + smoke-run)")
     return 0
 
 

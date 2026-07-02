@@ -13,7 +13,7 @@ Requirements (handled by ``scripts/setup.sh`` / documented in the README):
   * You must *accept each competition's rules on the website* before the API will
     let you download data or submit — the CLI cannot click that button for you.
 
-Console output is Japanese; code/comments are English.
+All console output, code, and comments are English.
 """
 
 from __future__ import annotations
@@ -38,8 +38,8 @@ def _kaggle_bin() -> str | None:
 def _run(args: list[str], capture: bool = False) -> int:
     kbin = _kaggle_bin()
     if not kbin:
-        print("✗ kaggle CLI が見つかりません。`bash scripts/setup.sh` か "
-              "`pip install kaggle` を実行し、~/.kaggle/kaggle.json を配置してください。",
+        print("kaggle CLI not found. Run `bash scripts/setup.sh` or "
+              "`pip install kaggle`, and place ~/.kaggle/kaggle.json.",
               file=sys.stderr)
         return 127
     cmd = [kbin, *args]
@@ -48,15 +48,15 @@ def _run(args: list[str], capture: bool = False) -> int:
         proc = subprocess.run(cmd, text=True,
                               capture_output=capture)
     except FileNotFoundError:
-        print("✗ kaggle CLI の実行に失敗しました。", file=sys.stderr)
+        print("kaggle CLI failed to run.", file=sys.stderr)
         return 127
     if capture:
         sys.stdout.write(proc.stdout or "")
         sys.stderr.write(proc.stderr or "")
     rc = proc.returncode
     if rc != 0:
-        print(f"✗ kaggle コマンドが失敗しました (rc={rc})。"
-              f"コンペのルールに同意済みか、認証情報が正しいか確認してください。",
+        print(f"kaggle command failed (rc={rc}). "
+              f"Check that you accepted the competition rules and your credentials are valid.",
               file=sys.stderr)
     return rc
 

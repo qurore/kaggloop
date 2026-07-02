@@ -9,8 +9,7 @@
     python -m kloop.project list
 
 The ``gap`` command is the core of the loop: it compares the actual score to the
-target and tells you whether to keep looping. Console output is Japanese
-(user-facing); code/comments stay English.
+target and tells you whether to keep looping. All console output, code, and comments are English.
 """
 
 from __future__ import annotations
@@ -19,13 +18,13 @@ import argparse
 import json
 import sys
 
-from . import ledger, notebooks, state
+from . import ledger, notebooks, smallstart, state
 
 
 def _resolve(name: str | None) -> str:
     n = name or state.current_project()
     if not n:
-        print("アクティブなプロジェクトがありません（--name を指定するか new で作成してください）",
+        print("No active project (pass --name, or create one with `new`).",
               file=sys.stderr)
         raise SystemExit(2)
     return n
@@ -79,10 +78,10 @@ def cmd_set(args) -> int:
             })
         if not state.decisions_for(name, st["stage"], st["iteration"]):
             print(
-                f"✗ stage '{st['stage']}' (iter {st['iteration']}) を done にできません: "
-                f"意思決定ログが未記録です。`python -m kloop.journal log --kind ... "
-                f"--decision ... --rationale ...` で記録するか、この set に "
-                f"--decision/--rationale を付けてください（observability 強制）。",
+                f"cannot mark stage '{st['stage']}' (iter {st['iteration']}) done: "
+                f"no decision is journaled for it. Record one with `python -m kloop.journal "
+                f"log --kind ... --decision ... --rationale ...`, or add --decision/--rationale "
+                f"to this set call (observability enforcement).",
                 file=sys.stderr,
             )
             return 2
@@ -96,9 +95,9 @@ def cmd_set(args) -> int:
         fresh, why = notebooks.sync_freshness(name, st)
         if not fresh:
             print(
-                f"✗ stage '{st['stage']}' (iter {st['iteration']}) を done にできません: {why} "
-                f"鉄則: 毎ループ Public Score 上位5ノートブックを同期・読了してから閉じること — "
-                f"`python -m kloop.notebooks sync --name {name}` を実行してください。",
+                f"cannot mark stage '{st['stage']}' (iter {st['iteration']}) done: {why} "
+                f"Iron rule: every loop, sync and read the top-5 Public-Score notebooks before "
+                f"closing — run `python -m kloop.notebooks sync --name {name}`.",
                 file=sys.stderr,
             )
             return 2
@@ -113,11 +112,11 @@ def cmd_set(args) -> int:
                 if r.get("status") != "rejected"]
         if not live:
             print(
-                f"✗ stage 'hypothesize' (iter {st['iteration']}) を done にできません: "
-                f"この iteration の challenge-track 仮説（track=challenge）が未登録です。"
-                f"通常の bets に加え、異分野の機構を持ち込むような斬新なチャレンジ仮説を"
-                f"1本以上 `python -m kloop.ledger add --track challenge ...` で登録して"
-                f"ください（デュアル提出の強制）。",
+                f"cannot mark stage 'hypothesize' (iter {st['iteration']}) done: "
+                f"no challenge-track hypothesis (track=challenge) is registered for this "
+                f"iteration. On top of the standard bets, register at least one bold "
+                f"cross-disciplinary challenge bet with `python -m kloop.ledger add "
+                f"--track challenge ...` (dual-submission enforcement).",
                 file=sys.stderr,
             )
             return 2
@@ -131,12 +130,50 @@ def cmd_set(args) -> int:
                  if d.get("iteration") == closing_iteration}
         if not ({"challenge_submission", "challenge_deferred"} & kinds):
             print(
-                f"✗ stage 'submit' (iter {closing_iteration}) を done にできません: "
-                f"チャレンジ提出が未記録です。2本目（challenge track）を提出して "
-                f"`python -m kloop.journal log --kind challenge_submission ...` を記録するか、"
-                f"提出不能な hard blocker（残り提出枠ゼロ等）がある場合のみ "
-                f"`--kind challenge_deferred --rationale <理由>` を記録してください"
-                f"（デュアル提出の強制）。",
+                f"cannot mark stage 'submit' (iter {closing_iteration}) done: "
+                f"no challenge submission is journaled. Submit the second (challenge-track) "
+                f"entry and record `python -m kloop.journal log --kind challenge_submission "
+                f"...`, or — only on a hard blocker (e.g. zero remaining daily submissions) — "
+                f"record `--kind challenge_deferred --rationale <reason>` "
+                f"(dual-submission enforcement).",
+                file=sys.stderr,
+            )
+            return 2
+
+    # Small-start Kanban enforcement, part 1 (experiment close): a small-start
+    # probe that was started this loop must be triaged (candidate/discard) before
+    # the stage closes — never leave a probe hanging in 'verifying' with an
+    # orphaned result. This makes the "probe -> triage on the result" step end-to-end.
+    if st.get("status") in ("done", "complete") and st.get("stage") == "experiment":
+        stuck = smallstart.open_probes(name)
+        if stuck:
+            ids = ", ".join(r["id"] for r in stuck)
+            print(
+                f"cannot mark stage 'experiment' (iter {st['iteration']}) done: "
+                f"small-start probe ticket(s) [{ids}] are still in 'verifying' and untriaged. "
+                f"Triage each with `python -m kloop.smallstart triage --id <id> --verdict "
+                f"candidate --strength very_strong|strong|moderate --metric <n>` (or "
+                f"`--verdict discard --reason ...`) before closing "
+                f"(small-start loop-integration enforcement).",
+                file=sys.stderr,
+            )
+            return 2
+
+    # Small-start Kanban enforcement, part 2 (hypothesize close): every OPEN
+    # full-impl candidate on the board must be acted on THIS loop — promote (build
+    # it now), defer (keep for a later loop), or drop — so the board is genuinely
+    # *used* in the full-implementation decision each next loop, instead of
+    # silently accreting. Judged and automated comps alike; empty board = no-op.
+    if st.get("status") in ("done", "complete") and st.get("stage") == "hypothesize":
+        pend = smallstart.unreviewed_candidates(name, st.get("iteration"))
+        if pend:
+            ids = ", ".join(f"{r['id']}({r.get('strength')})" for r in pend)
+            print(
+                f"cannot mark stage 'hypothesize' (iter {st['iteration']}) done: "
+                f"small-start full-impl candidate(s) [{ids}] have not been reviewed this loop. "
+                f"Read `python -m kloop.smallstart board` and act on each — promote (build it "
+                f"now) / defer (keep for a later loop) / drop (abandon) — before closing "
+                f"(full-implementation-decision loop-integration enforcement).",
                 file=sys.stderr,
             )
             return 2
@@ -175,11 +212,11 @@ def cmd_gap(args) -> int:
     print(json.dumps(out, indent=2, ensure_ascii=False))
     # Human-facing one-liner.
     if target is None:
-        print("→ 目標スコア未設定。survey/hypothesize で target_score を設定してください。", file=sys.stderr)
+        print("Target score not set; set target_score in survey/hypothesize.", file=sys.stderr)
     elif met:
-        print(f"→ 目標達成（{src}={actual} が target={target} に到達）。finalize 可能。", file=sys.stderr)
+        print(f"Target met ({src}={actual} reached target={target}); finalize is possible.", file=sys.stderr)
     elif g is not None:
-        print(f"→ 残りギャップ {g:+.6g}（{src}={actual} vs target={target}）。差分を研究して次ループへ。",
+        print(f"Gap remaining {g:+.6g} ({src}={actual} vs target={target}); study it and loop again.",
               file=sys.stderr)
     return 0
 

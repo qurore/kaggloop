@@ -163,7 +163,7 @@ def update(run_id: str, hyp_id: str, **fields) -> dict:
 def _resolve(run_id):
     rid = run_id or state.current_project()
     if not rid:
-        print("アクティブなプロジェクトがありません（--name を指定してください）", file=sys.stderr)
+        print("No active project (pass --name).", file=sys.stderr)
         raise SystemExit(2)
     return rid
 
@@ -209,7 +209,7 @@ def cmd_list(args) -> int:
         rows = [r for r in rows if r.get("status") == "proposed"]
     rows = sorted(rows, key=priority, reverse=True)
     if not rows:
-        print("（仮説はまだありません）")
+        print("(no hypotheses yet)")
         return 0
     for r in rows:
         mark = "CH" if r.get("track") == "challenge" else "  "

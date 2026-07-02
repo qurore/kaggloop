@@ -14,8 +14,8 @@ Run them as modules from the repo root, e.g.::
     python -m kloop.colab  submit --script train.py --timeout 5400
     python -m kloop.score  blend oof_a.npy oof_b.npy --out blend.npy --metric auc --y-true y.npy
 
-Console output is Japanese (user-facing); all code, comments, and docstrings are
-English.
+All console output, code, comments, and docstrings are English.
 """
 
-__all__ = ["state", "project", "ledger", "kaggle", "colab", "score", "gate", "journal"]
+__all__ = ["state", "project", "ledger", "smallstart", "kaggle", "colab", "score",
+           "gate", "journal"]

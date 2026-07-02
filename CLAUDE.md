@@ -27,12 +27,40 @@ automated scoring** (a human-judged writeup / analytics / "strategy" comp), the 
 **forced** to construct a rigorous, quantitative **LLM-as-Judge rubric** and use its score as
 the gap's `actual` — so the same gap-closing loop still runs. See **"Judged competitions"** below.
 
+## Win-only mandate — aim for #1, and be a reality-oriented optimist
+
+**The only acceptable goal is winning — Top 1.** `target_score` is set *above the current #1
+team*, and "hold a safe medal / settle for bronze" is **not** a move the agent may choose. Having
+no improvement idea is never a reason to stop; it is the signal to **hunt harder** — pull fresh
+intel from *every* source (the leaderboard, the top-5 synced notebooks, discussions,
+arxiv/semantic-scholar, the SDK/harness source, local repros) until you find a mechanism that
+could move the score a lot.
+
+**Impasses are expected — never get pessimistic.** Every hard optimization plateaus; a refuted
+bet is normal and *is* progress (it prunes the search space). The agent is a **reality-oriented
+optimist**: clear-eyed about what the evidence actually says, and relentless about the next bet.
+On an impasse the move is always the same, and it is mandatory:
+
+1. **Generate several small-start hypotheses** — bold, high-upside mechanisms that are *expensive
+   to fully build but cheap to probe* — and file them on the **small-start Kanban**
+   (`kloop.smallstart add`; per-project, deterministically enforced — see "Small-start Kanban").
+   Each ticket must carry a quantitative full-impl **Go/No-Go** bar, a **conditional-go** fallback,
+   and a proposed **probe plan**.
+2. **Validate them one at a time** (over as many loops as it takes), each by a minimal probe that
+   measures the mechanism's effectiveness for a fraction of the full-build cost.
+3. **Deploy every part that proves out** — any probe showing a real, expected score gain graduates
+   to a full implementation (results-ism); the rest are parked with their negative result so they
+   are never blindly re-tried.
+
+Never fabricate progress and never settle: a loop that yields no submission gain must still leave
+the Kanban richer (new probed tickets) so the *next* loop compounds toward #1.
+
 ## The win-loop
 
 `scout` (human picks the competition) → `survey` (dossier + CV + **target**) →
 `hypothesize` (**re-recon → high-quality, gap-focused bets** — the highest-leverage stage,
 where the competition is won or lost) → `experiment` (verify on Colab + **leakage gate each
-result**) → `submit` (**gate → ensemble → submit ×2 (baseline + challenge) → study gap →
+result**) → `submit` (**gate → ensemble → submit ×2 (primary + breakthrough, both new attempts) → study gap →
 self-improve → decide**). Drive it with the
 `kaggloop` umbrella skill or run stages directly (`/kaggloop-scout` … `/kaggloop-submit`).
 Each `SKILL.md` is authoritative.
@@ -59,13 +87,18 @@ is spent:
    the ledger — including **≥1 challenge-track bet** (`kloop.ledger add --track challenge`: the
    interdisciplinary breakthrough that becomes the round's second submission — enforced at stage
    close). Below the public floor, bet #1 is always closing to the best public notebook.
+   **Review the small-start Kanban** (`kloop.smallstart board`): promote/defer/drop every open
+   full-impl candidate (enforced at stage close), and **file new small-start tickets** for
+   expensive-to-build-but-cheap-to-probe ideas — see "Small-start Kanban" below.
 3. **`/kaggloop-experiment`** — implement the top bets; run on **Colab** (or reproduce the eval
    harness locally for code comps); score on the CV; **run the leakage gate on each result**;
    keep what improves CV leak-free, prune the rest; save OOF/test preds. Then **verify the
    challenge-track bet as a thin layer on top of the standard pipeline** (≤1 extra Colab job,
-   gate-clean) — its artifacts feed the second submission.
+   gate-clean) — its artifacts feed the second submission. **Run each small-start ticket's cheap
+   probe and triage it** (candidate + a 3-level strength label / discard — enforced: no probe left
+   hanging in `verifying`).
 4. **`/kaggloop-submit`** — ensemble the kept models → **pass the leakage gate (enforced)** →
-   **submit twice, safe-first: the baseline submission, then the challenge submission**
+   **submit twice, both new attempts: the primary (highest-confidence improvement), then the challenge submission**
    (each gated; journal `challenge_submission`, or `challenge_deferred` on a hard blocker —
    enforced at stage close) → record both LBs (`best_lb` = the better) → **study the gap**
    (`kloop.project gap`) → **write the
@@ -139,18 +172,29 @@ sharp, well-grounded hypothesis can leapfrog the board. Invest the most thought 
   high-variance idea that could *leapfrog* the board — a mechanism nobody has tried on this
   problem, a non-obvious exploit of the metric/harness, a fresh just-published method. Be bold in
   the bet, ruthless in the verification. Incrementalism plateaus; grounded breakthroughs win.
-- **THE DUAL-SUBMISSION MANDATE — every loop ships TWO submissions, in order (user-forced).**
-  The moonshot is not optional and not just a ledger line: each loop must **produce and submit two
-  distinct deliverables, safe-first**. **(1) The baseline submission** — the usual best (the
-  gap-closing incremental work), banked first as the proven floor. **(2) The breakthrough
-  submission** — the baseline **plus a thin extra layer of challenge hypothesis-testing**: a bold,
-  *interdisciplinary* mechanism reached in from another field (the "pressure-sensitive-paint
-  visualizes airflow" kind of cross-domain novelty — physics/algebra/signal-processing/biology →
-  this problem), verified the same way, and swapped in **only where it verifies leak-free** (so #2
-  is provably ≥ #1). **Submit #1 then #2, sequentially** (safe floor locked before the swing;
-  competitions allow multiple daily subs + keep 2 final picks — bank one of each). Applies to every
-  competition, automated or judged; on judged comps the "second submission" is a breakthrough
-  variant of the deliverable re-scored by the judge. See [[breakthrough-dual-submission-mandate]].
+- **THE DUAL-SUBMISSION MANDATE — every loop ships TWO submissions, and BOTH attempt a NEW
+  improvement (user-forced).** The moonshot is not optional and not just a ledger line: each loop
+  must **produce and submit two distinct deliverables, and neither may be a defensive resubmission
+  of a past best** — both carry a fresh, this-loop attempt at progress; they differ only in
+  *confidence*, not in whether they try. **(1) The primary submission** — the **highest-confidence
+  new improvement** this round: this loop's kept, gap-closing bets applied on top of the current
+  best (a genuine measured step forward, not last iteration's model re-submitted to guard the
+  score). **(2) The breakthrough submission** — the primary **plus a thin extra layer of challenge
+  hypothesis-testing**: a bold, *interdisciplinary* mechanism reached in from another field (the
+  "pressure-sensitive-paint visualizes airflow" kind of cross-domain novelty —
+  physics/algebra/signal-processing/biology → this problem) that you are **not** confident will
+  score but which swings for a home-run leapfrog; verified the same way and swapped in where it
+  verifies leak-free. **Submit #1 then #2, sequentially** (competitions allow multiple daily subs +
+  keep 2 final picks — bank one of each).
+  **The two-way-door principle — always be aggressive, never defensive.** A submission is a
+  *reversible* door: every prior iteration's models and submissions are kept, Kaggle holds two
+  final-selection slots, and a worse LB this round never erases a better earlier one — so if a bet
+  doesn't pan out you simply **roll back and restart from the previous iteration**. Because the
+  downside is bounded and undoable, there is **no reason to play defense**: never spend a
+  submission merely guarding the current best; both entries make a real new attempt every loop.
+  Applies to every competition, automated or judged; on judged comps the "second submission" is a
+  breakthrough variant of the deliverable re-scored by the judge. See
+  [[breakthrough-dual-submission-mandate]].
   **Enforced in `kloop.project set`:** `hypothesize` cannot close without a live
   `--track challenge` ledger bet for the iteration, and `submit` cannot close without a journaled
   `challenge_submission` (or a hard-blocker `challenge_deferred` — zero submissions left / a
@@ -186,7 +230,7 @@ budget — see `/kaggloop-submit` → "Code / simulation competitions".
 .claude/settings.json  wires hooks; default-off autopilot; minimal permissions
 .claude/self-improvements.jsonl  append-only log of results-driven pipeline self-improvements
 .mcp.json              MCP servers: arxiv, semantic-scholar (science) + kaggle (official, remote)
-kloop/                 thin helpers: state, project, ledger, kaggle, colab, score, gate, journal, standing, selfimprove
+kloop/                 thin helpers: state, project, ledger, smallstart, kaggle, colab, score, gate, journal, standing, selfimprove
 colab/                 worker.py (GPU compute) + kaggloop_worker.ipynb + README
 competitions/          TEMPLATE_competition.md + shortlist/ (discovery scratch)
 projects/<name>/       one self-contained project per competition (contents gitignored)
@@ -197,7 +241,8 @@ projects/<name>/       one self-contained project per competition (contents giti
 `projects/<name>/` holds **everything** for a competition: `state.json` (source of truth) ·
 `README.md` (lab notebook) · `TLDR.md` · `dossier.md` · `recon.md` (cumulative per-loop
 reconnaissance log — dated board/notebook/discussion/paper findings, one entry per iteration) ·
-`hypotheses.jsonl` · `progress.jsonl` (target/actual history) · `standing.jsonl` (score vs medal
+`hypotheses.jsonl` · `smallstart.jsonl` (small-start Kanban board — deferred, cheap-to-probe
+bets) · `progress.jsonl` (target/actual history) · `standing.jsonl` (score vs medal
 lines, per iteration) · `iterations/iter_<NNN>_*.md` (per-iteration learning journals) ·
 `decisions.jsonl` (append-only
 decision journal) · `gate.json` + `gate_checks.json` · `judge_rubric.md`/`judge_rubric.json` +
@@ -214,6 +259,7 @@ python -m kloop.project new|show|set|gap|list ...   # project state + target/gap
 python -m kloop.kaggle  list|files|kernels|leaderboard|submit|submissions ...
 python -m kloop.notebooks sync|list ...             # top-5 Public-Score notebook sync (byte-deduped) — the iron rule
 python -m kloop.ledger  add|update|list ...         # hypothesis ledger
+python -m kloop.smallstart add|start|triage|promote|defer|drop|board|list ...  # small-start Kanban (deferred bets)
 python -m kloop.gate    check|checklist|affirm|verify ...   # data-leakage quality gate
 python -m kloop.journal log|show ...                # append-only decision journal (observability)
 python -m kloop.standing snapshot ...               # score vs medal lines (top/gold/silver/bronze) per iter
@@ -226,7 +272,8 @@ bash scripts/doctor.sh
 > **Parallel sessions / projects.** The active project resolves per-session: `--name` >
 > `KLOOP_PROJECT` env > this session's pointer > legacy global pointer. When more than one
 > project/session may be active at once, **pass `--name <project>` explicitly** (or
-> `export KLOOP_PROJECT=<project>`) on `kloop.project` / `kloop.journal` — don't rely on the
+> `export KLOOP_PROJECT=<project>`) on `kloop.project` / `kloop.journal` / `kloop.smallstart` —
+> don't rely on the
 > implicit "current project", or one session's writes can land on another's project. If a
 > command echoes an unexpected `created`/`stage`/`metric`, stop and run `kloop.project list`.
 
@@ -295,9 +342,50 @@ gap analysis, loop decisions). It is append-only: the module only appends, the
 `kloop.project set --status done` **refuses to close a stage without a journaled decision**
 for that stage+iteration (log inline with `--decision/--rationale`).
 
+## Small-start Kanban — deferred, expensive-but-promising bets (structured, enforced)
+
+Some hypotheses are **too costly to fully build inside one loop**, yet **cheap to probe**: a
+"small start" (1 fold, a subsample, a 2-layer stand-in, a one-section draft) reveals whether the
+full build is worth funding. These bets don't belong in the hypothesis ledger (which tracks bets
+verified and cashed *this* loop) — they live on a **separate, per-project Agile-Kanban board**
+(`projects/<name>/smallstart.jsonl`, driven by `python -m kloop.smallstart`) that **persists and
+compounds across loops**, so the pipeline decides *next* loop whether to fund the full build. It is
+human-intervention-free and enforced deterministically (in `kloop.project set`, and surfaced by the
+hooks), exactly like the iron-rule and dual-submission mandates.
+
+**Three columns (the Kanban stages):** `backlog` -> `verifying` -> `triaged`. A triaged ticket's
+verdict is **candidate** or **discard**; every candidate carries a full-implementation **strength**
+label — the effect prediction for the full build — in three levels: **very_strong**, **strong**,
+**moderate**. The next loop reads candidates strongest-first to decide what to build.
+
+**The ticket-writing contract (enforced at `add` — the creating agent must supply all three):**
+- `--go-criteria` — the **quantitative** full-impl Go/No-Go bar (e.g. "POC shows leak-free CV
+  >= +0.003 on >=3 folds -> Go").
+- `--conditional-go` — the **fallback**: conditions under which it still becomes a candidate even
+  when the quantitative bar is missed (e.g. "even if < +0.003, a moderate candidate if OOF corr
+  with the current ensemble < 0.5").
+- `--smallstart-plan` — a **proposed** small-start implementation — a *suggestion* the implementing
+  agent may adapt, not obey verbatim.
+
+**Lifecycle, woven into the loop (deterministically enforced in `kloop.project set`):**
+- **`hypothesize`** — **review the board** (`kloop.smallstart board`): `promote` (build it now ->
+  register a full bet in the ledger) / `defer` (keep for a later loop) / `drop` every OPEN
+  candidate. The stage **cannot close while any open candidate is un-reviewed this loop** — so the
+  board is genuinely *used* in the full-impl decision, never silently accreting. Also **file new
+  backlog tickets** for expensive-but-promising ideas surfaced in brainstorming.
+- **`experiment`** — run each backlog ticket's cheap **small-start probe** (`start` -> probe ->
+  `triage` into candidate(+strength) / discard). The stage **cannot close while any probe is left
+  hanging in `verifying`.**
+- **`submit`** — nothing special; the board (with its new candidates) carries forward to the next
+  loop's hypothesize review.
+
+Applies to automated and judged comps alike (in judged mode a "probe" is a quick partial draft
+scored against the rubric). The board is summarized in the SessionStart banner and surfaced in
+autopilot guidance.
+
 ## Pipeline self-improvement (results-driven, automatic — every loop)
 
-The pipeline improves **itself**, on 結果主義 (results-ism): at the tail of **every** loop
+The pipeline improves **itself**, on results-ism: at the tail of **every** loop
 iteration (inside `/kaggloop-submit`, after the gap study + iteration journal) run
 `python -m kloop.selfimprove check` — a direction-aware comparison of this round's *realized*
 score against the best of all previous iterations (from `progress.jsonl`; in judged mode the
@@ -363,8 +451,12 @@ notebooks, discussions). Keep **submissions on the `kaggle` CLI + `kloop.kaggle`
   `judge/iter_<NNN>.json` (with its per-criterion evidence).
 - **Play by the rules** (external-data policy, frameworks, code-comp limits, daily submission
   cap). Submitting acts on the user's real Kaggle account.
-- **Code/comments/docs in English; console output in Japanese.** Hook *decision reasons*
-  (guard deny / autopilot) are agent-facing instructions and stay English.
+- **English everywhere the code touches — code, comments, docs, AND all console/stdout the tooling
+  prints** (`kloop.*` CLIs, hooks, scripts, journal entries). **Japanese is only for the
+  assistant's conversational replies to the user; it must never appear in code output.** (Hook
+  *decision reasons* were already English.) This supersedes the earlier "console output in
+  Japanese" convention: new or edited code emits English, and legacy Japanese strings are migrated
+  to English as they are touched.
 - **Git: no feature branches — everything lands on `main`; ship = immediate push.** Work
   directly on `main` (this repo intentionally overrides the "branch first" default). When you
   judge the work shippable — modules compile (`python -m py_compile kloop/*.py`), touched

@@ -16,7 +16,7 @@ Note: the kaggle CLI/API returns the score-sorted *order* but not the score
 *values* — read the values off the notebook page / Code tab and record them in
 ``recon.md``.
 
-Console output is Japanese; code/comments are English.
+All console output, code, and comments are English.
 """
 
 from __future__ import annotations
@@ -54,7 +54,7 @@ def _safe_ref(ref: str) -> str:
 def _run_kaggle(args: list[str]) -> tuple[int, str]:
     kbin = _kaggle_bin()
     if not kbin:
-        print("✗ kaggle CLI が見つかりません。`bash scripts/setup.sh` を実行してください。",
+        print("kaggle CLI not found. Run `bash scripts/setup.sh`.",
               file=sys.stderr)
         return 127, ""
     proc = subprocess.run([kbin, *args], text=True, capture_output=True)
@@ -132,7 +132,7 @@ def sync(name: str | None, competition: str | None, top: int,
     else:
         n = name or state.current_project()
         if not n:
-            print("アクティブなプロジェクトがありません（--name か --dest を指定してください）",
+            print("No active project (pass --name or --dest).",
                   file=sys.stderr)
             return 2
         st = state.load_state(n)
@@ -140,19 +140,19 @@ def sync(name: str | None, competition: str | None, top: int,
         competition = competition or st.get("competition")
         iteration = st.get("iteration")
     if not competition:
-        print("コンペ slug が不明です（--competition を指定してください）", file=sys.stderr)
+        print("Competition slug unknown (pass --competition).", file=sys.stderr)
         return 2
     sort_by = sort_by or _default_sort(st.get("metric_direction"))
 
     listing = list_top(competition, sort_by, top)
     if listing is None:
-        print("✗ Code タブの一覧取得に失敗しました（kaggle CLI / 認証 / slug を確認）。",
+        print("Failed to list the Code tab (check kaggle CLI / auth / slug).",
               file=sys.stderr)
         return 1
     base.mkdir(parents=True, exist_ok=True)
     manifest = _load_manifest(base)
     if not listing:
-        print(f"（{competition}: 公開ノートブックが見つかりません — judged/新規コンペの可能性）")
+        print(f"({competition}: no public notebooks found — possibly a judged/new competition)")
 
     now = _stamp()
     counts = {"new": 0, "updated": 0, "unchanged": 0, "failed": 0}
@@ -169,7 +169,7 @@ def sync(name: str | None, competition: str | None, top: int,
         rc, _ = _run_kaggle(["kernels", "pull", ref, "-p", str(tmp), "-m"])
         if rc != 0:
             status = "pull_failed"
-            print(f"  #{rank} FAILED    {ref}（pull 失敗 — 非公開化/削除の可能性）")
+            print(f"  #{rank} FAILED    {ref} (pull failed — possibly made private/deleted)")
         else:
             sha, files = _source_hash(tmp)
             prev_sha = entry.get("sha256")
@@ -217,15 +217,15 @@ def sync(name: str | None, competition: str | None, top: int,
     }
     (base / MANIFEST).write_text(json.dumps(manifest, indent=2, ensure_ascii=False))
 
-    print(f"\nTop-{top} 同期（{competition}, {sort_by}）: "
-          f"新規 {counts['new']} / 更新 {counts['updated']} / "
-          f"変更なし {counts['unchanged']} / 失敗 {counts['failed']}")
+    print(f"\nTop-{top} sync ({competition}, {sort_by}): "
+          f"new {counts['new']} / updated {counts['updated']} / "
+          f"unchanged {counts['unchanged']} / failed {counts['failed']}")
     if to_read:
-        print("→ 読むべき差分（全文を読み、スコアと手法を recon.md に記録）: "
+        print("Deltas to read (read in full; record score + techniques in recon.md): "
               + ", ".join(to_read))
     else:
-        print("→ 新規/更新なし（byte一致）。既存コピーの再読は不要、recon は他の軸の差分へ。")
-    print("※ スコア値は CLI に出ない — Code タブ/ノートブックページで確認して記録すること。")
+        print("No new/updated notebooks (byte-identical). No re-read needed; move recon to other axes.")
+    print("Note: score values are not in the CLI output — read them off the Code tab / notebook page and record.")
     return 0
 
 
@@ -238,14 +238,14 @@ def sync_freshness(name: str, st: dict) -> tuple[bool, str]:
     """
     p = state.project_dir(name) / "notebooks" / MANIFEST
     if not p.exists():
-        return False, "top-notebook sync が未実施です（notebooks/manifest.json なし）。"
+        return False, "top-notebook sync has not been run (no notebooks/manifest.json)."
     try:
         last = (json.loads(p.read_text()) or {}).get("last_sync") or {}
     except json.JSONDecodeError:
-        return False, "notebooks/manifest.json が壊れています。再同期してください。"
+        return False, "notebooks/manifest.json is corrupt; re-sync."
     if st.get("stage") == "hypothesize" and last.get("iteration") != st.get("iteration"):
-        return False, (f"top-notebook sync がこのループ（iter {st.get('iteration')}）で"
-                       f"未実施です（最終同期 iter {last.get('iteration')}）。")
+        return False, (f"top-notebook sync has not been run this loop (iter {st.get('iteration')}); "
+                       f"last sync was iter {last.get('iteration')}.")
     return True, ""
 
 
@@ -255,17 +255,17 @@ def cmd_list(name: str | None, dest: str | None) -> int:
     else:
         n = name or state.current_project()
         if not n:
-            print("アクティブなプロジェクトがありません", file=sys.stderr)
+            print("No active project", file=sys.stderr)
             return 2
         base = state.project_dir(n) / "notebooks"
     m = _load_manifest(base)
     last = m.get("last_sync")
     if not last:
-        print("同期履歴なし — `python -m kloop.notebooks sync` を実行してください。")
+        print("No sync history — run `python -m kloop.notebooks sync`.")
         return 0
-    print(f"最終同期: {last['ts']} (iter {last['iteration']}, {last['sort_by']}, "
-          f"top {last['top']}) — 新規 {last['new']} / 更新 {last['updated']} / "
-          f"変更なし {last['unchanged']} / 失敗 {last['failed']}")
+    print(f"last sync: {last['ts']} (iter {last['iteration']}, {last['sort_by']}, "
+          f"top {last['top']}) — new {last['new']} / updated {last['updated']} / "
+          f"unchanged {last['unchanged']} / failed {last['failed']}")
     for ref, e in sorted(m["kernels"].items(), key=lambda kv: kv[1].get("rank", 99)):
         print(f"  #{e.get('rank','-')} [{e.get('last_status','?'):9s}] {ref} "
               f"(checked iter {e.get('last_checked_iter')}, "

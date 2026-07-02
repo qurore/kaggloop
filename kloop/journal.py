@@ -19,8 +19,7 @@ stage done unless a decision for that stage+iteration has been journaled (see
     python -m kloop.journal show [--stage experiment] [--kind hypothesis_kept] [--n 20]
 
 ``--stage`` / ``--iteration`` default to the current project state, so entries are
-auto-tagged to where you are in the loop. Console output is Japanese; code/comments
-are English.
+auto-tagged to where you are in the loop. All console output, code, and comments are English.
 """
 
 from __future__ import annotations
@@ -42,7 +41,7 @@ KINDS = [
 def _resolve(name):
     n = name or state.current_project()
     if not n:
-        print("アクティブなプロジェクトがありません（--name を指定してください）", file=sys.stderr)
+        print("No active project (pass --name).", file=sys.stderr)
         raise SystemExit(2)
     return n
 
@@ -60,7 +59,7 @@ def cmd_log(args) -> int:
         "evidence": args.evidence or "",
     }
     out = state.append_decision(name, rec)
-    print(f"✓ 意思決定を記録: [{out['stage']}#{out['iteration']}] {out['kind']}: {out['decision']}")
+    print(f"decision logged: [{out['stage']}#{out['iteration']}] {out['kind']}: {out['decision']}")
     return 0
 
 
@@ -73,7 +72,7 @@ def cmd_show(args) -> int:
         rows = [r for r in rows if r.get("kind") == args.kind]
     rows = rows[-args.n:] if args.n else rows
     if not rows:
-        print("（意思決定ログはまだありません）")
+        print("(no decision log yet)")
         return 0
     for r in rows:
         refs = ("  refs=" + ",".join(r.get("refs", []))) if r.get("refs") else ""

@@ -10,6 +10,7 @@
     "allow": [
       "Bash(python -m kloop.project:*)",
       "Bash(python -m kloop.ledger:*)",
+      "Bash(python -m kloop.smallstart:*)",
       "Bash(python -m kloop.gate:*)",
       "Bash(python -m kloop.journal:*)",
       "Bash(python -m kloop.selfimprove:*)",
@@ -23,6 +24,7 @@
       "Bash(python -m kloop.score:*)",
       "Bash(.venv/bin/python -m kloop.project:*)",
       "Bash(.venv/bin/python -m kloop.ledger:*)",
+      "Bash(.venv/bin/python -m kloop.smallstart:*)",
       "Bash(.venv/bin/python -m kloop.gate:*)",
       "Bash(.venv/bin/python -m kloop.journal:*)",
       "Bash(.venv/bin/python -m kloop.selfimprove:*)",

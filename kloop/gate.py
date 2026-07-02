@@ -26,8 +26,7 @@ The gate has two halves:
 `verify` requires **zero automated failures**, **no mandatory check skipped**, and
 **every checklist item affirmed**; only then does it write a passing
 ``gate.json`` (and set ``gate_passed`` in state) — which the submission guard hook
-checks before allowing a Kaggle submit. Console output is Japanese; code/comments
-are English.
+checks before allowing a Kaggle submit. All console output, code, and comments are English.
 """
 
 from __future__ import annotations
@@ -42,12 +41,12 @@ from . import state
 
 # Checklist the agent must affirm (key -> human statement). All are mandatory.
 CHECKLIST = {
-    "fit_on_train_only": "全ての特徴量変換（スケーリング/エンコード/欠損補完）は train のみで fit し test に適用している",
-    "oof_target_encoding": "ターゲットエンコード/集約特徴は CV フォールド内（out-of-fold）で計算し、全 train で漏らしていない",
-    "no_future_info": "（時系列の場合）未来の情報を特徴に含めていない",
-    "no_banned_external": "コンペが禁止する外部データやリークを使用していない",
-    "cv_matches_split": "CV 設計がコンペの train/test 分割（group/time/stratify）と一致している",
-    "no_test_in_train": "test 行が train に混入しておらず、id/並び順からのラベルリークがない",
+    "fit_on_train_only": "All feature transforms (scaling/encoding/imputation) are fit on train only and applied to test",
+    "oof_target_encoding": "Target-encoding / aggregate features are computed out-of-fold within CV, not leaked across all train",
+    "no_future_info": "(time series) No future information is included in the features",
+    "no_banned_external": "No competition-banned external data or leakage is used",
+    "cv_matches_split": "The CV design matches the competition's train/test split (group/time/stratify)",
+    "no_test_in_train": "No test rows leak into train, and there is no label leak from id/ordering",
 }
 # Automated checks that MUST run (not be skipped) for a pass.
 MANDATORY_CHECKS = {"train_test_overlap", "oof_sanity"}
@@ -58,7 +57,7 @@ def _np():
         import numpy as np
         return np
     except ImportError:
-        print("✗ numpy が必要です。`bash scripts/setup.sh` を実行してください。", file=sys.stderr)
+        print("numpy is required. Run `bash scripts/setup.sh`.", file=sys.stderr)
         raise SystemExit(3)
 
 
@@ -107,8 +106,8 @@ def chk_train_test_overlap(train_ids, test_ids):
     if inter:
         sample = list(inter)[:5]
         return _result("train_test_overlap", "fail",
-                       f"train と test に {len(inter)} 件の共通 id（例: {sample}）→ identity leakage")
-    return _result("train_test_overlap", "pass", "train/test の id 重複なし")
+                       f"{len(inter)} shared id(s) between train and test (e.g. {sample}) -> identity leakage")
+    return _result("train_test_overlap", "pass", "no id overlap between train/test")
 
 
 def chk_oof_sanity(y_true, oof, task, metric):
@@ -116,9 +115,9 @@ def chk_oof_sanity(y_true, oof, task, metric):
     yt = np.asarray(y_true, dtype=float).ravel()
     yp = np.asarray(oof, dtype=float).ravel()
     if yt.shape != yp.shape:
-        return _result("oof_sanity", "fail", f"shape 不一致 y_true{yt.shape} vs oof{yp.shape}")
+        return _result("oof_sanity", "fail", f"shape mismatch y_true{yt.shape} vs oof{yp.shape}")
     if np.isnan(yp).any():
-        return _result("oof_sanity", "fail", "OOF 予測に NaN が含まれる")
+        return _result("oof_sanity", "fail", "OOF predictions contain NaN")
     try:
         if task == "classification":
             from sklearn.metrics import roc_auc_score, accuracy_score
@@ -134,13 +133,13 @@ def chk_oof_sanity(y_true, oof, task, metric):
             s = 1.0 - ss_res / ss_tot
             name = "R2"
     except Exception as e:  # noqa: BLE001 — sanity check must not crash the gate
-        return _result("oof_sanity", "warn", f"スコア算出に失敗（{e}）。手動確認を推奨")
+        return _result("oof_sanity", "warn", f"scoring failed ({e}); manual check recommended")
     if s >= 0.9999:
         return _result("oof_sanity", "fail",
-                       f"OOF {name}={s:.5f} が完璧に近い → ほぼ確実にリーク")
+                       f"OOF {name}={s:.5f} is near-perfect -> almost certainly leakage")
     if s >= 0.99:
-        return _result("oof_sanity", "warn", f"OOF {name}={s:.5f} が非常に高い。リークを要確認")
-    return _result("oof_sanity", "pass", f"OOF {name}={s:.5f}（妥当な範囲）")
+        return _result("oof_sanity", "warn", f"OOF {name}={s:.5f} is very high; check for leakage")
+    return _result("oof_sanity", "pass", f"OOF {name}={s:.5f} (plausible range)")
 
 
 def chk_single_feature_leak(X, y, task, fail_thr=0.999, warn_thr=0.97):
@@ -169,11 +168,11 @@ def chk_single_feature_leak(X, y, task, fail_thr=0.999, warn_thr=0.97):
             best, best_j = power, j
     if best >= fail_thr:
         return _result("single_feature_leak", "fail",
-                       f"単一特徴 col[{best_j}] が単独で target をほぼ完全予測（power={best:.4f}）→ リーク疑い")
+                       f"single feature col[{best_j}] alone predicts the target almost perfectly (power={best:.4f}) -> suspected leak")
     if best >= warn_thr:
         return _result("single_feature_leak", "warn",
-                       f"単一特徴 col[{best_j}] の予測力が高い（power={best:.4f}）。要確認")
-    return _result("single_feature_leak", "pass", f"単一特徴の最大予測力 power={best:.4f}（許容）")
+                       f"single feature col[{best_j}] has high predictive power (power={best:.4f}); check it")
+    return _result("single_feature_leak", "pass", f"max single-feature power={best:.4f} (acceptable)")
 
 
 def chk_group_fold_integrity(groups, folds):
@@ -187,8 +186,8 @@ def chk_group_fold_integrity(groups, folds):
             bad.append(grp)
     if bad:
         return _result("group_fold_integrity", "fail",
-                       f"{len(bad)} 個の group が複数フォールドにまたがる（例: {bad[:5]}）→ group leakage")
-    return _result("group_fold_integrity", "pass", "各 group は単一フォールドに収まっている")
+                       f"{len(bad)} group(s) span multiple folds (e.g. {bad[:5]}) -> group leakage")
+    return _result("group_fold_integrity", "pass", "each group stays within a single fold")
 
 
 def chk_time_fold_integrity(times, folds):
@@ -206,19 +205,19 @@ def chk_time_fold_integrity(times, folds):
         prev_max = cur_max
     if overlaps:
         return _result("time_fold_integrity", "warn",
-                       f"{overlaps} 箇所でフォールドの時間範囲が重複 → 時系列分割になっていない可能性")
-    return _result("time_fold_integrity", "pass", "フォールドの時間範囲は重複なく時間順")
+                       f"fold time ranges overlap in {overlaps} place(s) -> may not be a time-based split")
+    return _result("time_fold_integrity", "pass", "fold time ranges are ordered and non-overlapping")
 
 
 def chk_cv_lb_consistency(cv, lb, direction, tol):
     if cv is None or lb is None:
-        return _result("cv_lb_consistency", "skip", "best_cv または best_lb が未設定（提出後に再評価）")
+        return _result("cv_lb_consistency", "skip", "best_cv or best_lb not set (re-evaluate after submission)")
     cv, lb = float(cv), float(lb)
     gap = (cv - lb) if direction == "maximize" else (lb - cv)
     if gap > tol:
         return _result("cv_lb_consistency", "warn",
-                       f"CV が LB より {gap:.5g} 良い（tol={tol}）。リーク/過学習/分布シフトを要調査")
-    return _result("cv_lb_consistency", "pass", f"CV↔LB 乖離 {gap:.5g}（許容内）")
+                       f"CV is {gap:.5g} better than LB (tol={tol}); investigate leak/overfit/distribution-shift")
+    return _result("cv_lb_consistency", "pass", f"CV-LB gap {gap:.5g} (within tolerance)")
 
 
 # --------------------------------------------------------------------------- store
@@ -247,7 +246,7 @@ def _save_checks(name, data):
 def _resolve(name):
     n = name or state.current_project()
     if not n:
-        print("アクティブなプロジェクトがありません（--name を指定してください）", file=sys.stderr)
+        print("No active project (pass --name).", file=sys.stderr)
         raise SystemExit(2)
     return n
 
@@ -260,18 +259,18 @@ def cmd_check(args) -> int:
     if args.train_ids and args.test_ids:
         results.append(chk_train_test_overlap(_load_1d(args.train_ids), _load_1d(args.test_ids)))
     else:
-        results.append(_result("train_test_overlap", "skip", "--train-ids/--test-ids 未指定"))
+        results.append(_result("train_test_overlap", "skip", "--train-ids/--test-ids not provided"))
 
     if args.oof and args.y_true:
         results.append(chk_oof_sanity(_load_1d(args.y_true), _load_1d(args.oof), args.task, st.get("metric")))
     else:
-        results.append(_result("oof_sanity", "skip", "--oof/--y-true 未指定"))
+        results.append(_result("oof_sanity", "skip", "--oof/--y-true not provided"))
 
     if args.x and args.y_true:
         X, _ = _load_2d(args.x)
         results.append(chk_single_feature_leak(X, _load_1d(args.y_true), args.task))
     else:
-        results.append(_result("single_feature_leak", "skip", "--x/--y-true 未指定（特徴リーク検査をスキップ）"))
+        results.append(_result("single_feature_leak", "skip", "--x/--y-true not provided (skipping single-feature leak check)"))
 
     if args.groups and args.folds:
         results.append(chk_group_fold_integrity(_load_1d(args.groups), _load_1d(args.folds)))
@@ -286,7 +285,7 @@ def cmd_check(args) -> int:
     _save_checks(name, data)
 
     icon = {"pass": "✓", "warn": "!", "fail": "✗", "skip": "·"}
-    print(f"=== リークゲート 自動チェック: {name} ===")
+    print(f"=== leakage gate automated checks: {name} ===")
     for r in results:
         print(f"  {icon.get(r['status'], '?')} [{r['status']:4s}] {r['check']}: {r['detail']}")
     fails = [r for r in results if r["status"] == "fail"]
@@ -295,10 +294,10 @@ def cmd_check(args) -> int:
 
 
 def cmd_checklist(args) -> int:
-    print("=== リークセーフ チェックリスト（affirm で全項目を確認）===")
+    print("=== leakage-safety checklist (affirm every item) ===")
     for k, v in CHECKLIST.items():
         print(f"  [{k}] {v}")
-    print("確認後: python -m kloop.gate affirm --confirm " + ",".join(CHECKLIST))
+    print("After confirming: python -m kloop.gate affirm --confirm " + ",".join(CHECKLIST))
     return 0
 
 
@@ -307,16 +306,16 @@ def cmd_affirm(args) -> int:
     confirmed = [k.strip() for k in (args.confirm or "").split(",") if k.strip()]
     unknown = [k for k in confirmed if k not in CHECKLIST]
     if unknown:
-        print(f"✗ 不明なチェックリスト項目: {unknown}", file=sys.stderr)
+        print(f"unknown checklist item(s): {unknown}", file=sys.stderr)
         return 2
     data = _load_checks(name)
     data["affirmed"] = sorted(set(confirmed))
     data["affirmed_by"] = "agent"
     _save_checks(name, data)
     missing = [k for k in CHECKLIST if k not in data["affirmed"]]
-    print(f"✓ 確認済み: {len(data['affirmed'])}/{len(CHECKLIST)}")
+    print(f"affirmed: {len(data['affirmed'])}/{len(CHECKLIST)}")
     if missing:
-        print(f"  未確認: {missing}")
+        print(f"  not yet affirmed: {missing}")
     return 0
 
 
@@ -349,16 +348,16 @@ def cmd_verify(args) -> int:
     state.save_state(name, st)
 
     if passed:
-        print(f"✓ リークゲート 合格: {name}" + (f"（warn: {warns}）" if warns else ""))
-        print("  → 提出が許可されます（submission guard フックを通過）。")
+        print(f"leakage gate PASSED: {name}" + (f" (warn: {warns})" if warns else ""))
+        print("  submission is allowed (passes the submission-guard hook).")
         return 0
-    print(f"✗ リークゲート 不合格: {name}", file=sys.stderr)
+    print(f"leakage gate FAILED: {name}", file=sys.stderr)
     if fails:
-        print(f"  失敗チェック: {fails}", file=sys.stderr)
+        print(f"  failed checks: {fails}", file=sys.stderr)
     if skipped_mandatory:
-        print(f"  未実行の必須チェック: {skipped_mandatory}（kloop.gate check を実行）", file=sys.stderr)
+        print(f"  mandatory checks not run: {skipped_mandatory} (run kloop.gate check)", file=sys.stderr)
     if missing_affirm:
-        print(f"  未確認のチェックリスト: {missing_affirm}（kloop.gate affirm）", file=sys.stderr)
+        print(f"  checklist not affirmed: {missing_affirm} (kloop.gate affirm)", file=sys.stderr)
     return 1
 
 

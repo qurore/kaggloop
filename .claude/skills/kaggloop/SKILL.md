@@ -17,7 +17,7 @@ Colab**, ensemble, and submit. No external LLM API keys.
 The loop exists to **close a gap to a target score**. Every project carries a
 `target_score` — the score we aim to *receive at submission* (derived from the leaderboard
 distribution: a medal line / top-X% / the top public notebook). Each iteration we compare
-the **actual** score to the target, **study the gap** ("差分の研究" — why are we short, what
+the **actual** score to the target, **study the gap** (why are we short, what
 is the highest-leverage fix?), and loop the verification to close it. The gap is the
 loop's compass:
 
@@ -50,7 +50,7 @@ part of the system.
    intel). The next iteration **reads the last ≤5 journals + `recon.md` first** and decides whether
    to adopt the prior plan — so the loop never repeats a refuted approach and keeps sharpening.
    (See `/kaggloop-submit` step 6b and `/kaggloop-hypothesize`.)
-7. **The pipeline improves ITSELF — results-driven (結果主義):** the tail of every
+7. **The pipeline improves ITSELF — results-driven (results-ism):** the tail of every
    `/kaggloop-submit` runs `python -m kloop.selfimprove check` (did this round's *realized* score
    beat the previous loops' best?). **Only on a real improvement** does the agent analyze what
    worked and — when a generalizable process lesson exists — directly upgrade the shared pipeline
@@ -74,6 +74,14 @@ part of the system.
    scratch-written code below the public floor), `target_score` sits above it, and breakthroughs
    are built on top of it. `kloop.project set` refuses to close survey/hypothesize without a
    fresh sync (judged comps excepted).
+10. **Small-start Kanban — deferred, cheap-to-probe bets (enforced):** ideas too costly to fully
+   build this loop but cheap to probe go on a per-project Agile-Kanban board (`kloop.smallstart`;
+   `backlog → verifying → triaged`), each ticket carrying a mandatory quantitative full-impl
+   Go/No-Go bar + conditional fallback + proposed probe. `hypothesize` reviews the board
+   (promote/defer/drop every open candidate — enforced) and files new tickets; `experiment` runs
+   the cheap probe and triages it (candidate + a 3-level strength label / discard — enforced). The
+   board persists across loops, so the *next* loop decides what to fully build. See CLAUDE.md →
+   "Small-start Kanban".
 
 ## The win-loop
 
@@ -146,6 +154,12 @@ blind/static output size times out → "Submission Format Error"). Full playbook
   competition's split; the LB is a small noisy validation set. The target/gap is on the
   realized score, but CV is what you optimize.
 - **Pass the leakage gate before every submission.** It is enforced; never bypass it.
+- **Two submissions, both aggressive (the two-way-door principle).** Every loop ships two
+  submissions and **both attempt a new improvement** — never a defensive resubmission of a past
+  best. #1 is the highest-confidence new improvement (this round's kept bets), #2 the
+  low-confidence, novel home-run swing. A submission is a *reversible door* — prior iterations'
+  models/submissions are kept and a worse LB never erases an earlier better one, so if a bet fails
+  you just roll back — therefore always be aggressive. See CLAUDE.md → "THE DUAL-SUBMISSION MANDATE".
 - **Judged (no-leaderboard) comps run the same loop on an LLM-as-Judge rubric.** If a competition
   isn't auto-scored (a human-judged writeup / analytics / "strategy" comp), survey **must** build
   a rigorous, quantitative judge rubric from primary sources + real exemplars, and the loop

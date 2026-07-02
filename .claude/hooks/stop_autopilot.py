@@ -79,6 +79,29 @@ def main():
     stage = st.get("stage", "scout")
     status = st.get("status", "pending")
     iteration = int(st.get("iteration") or 0)
+
+    # Small-start Kanban reminder — a started probe left un-triaged blocks the
+    # experiment close, and an un-reviewed full-impl candidate blocks the
+    # hypothesize close (kloop.project enforces both). Surface it so the
+    # hands-off loop works the board instead of stalling on the gate.
+    board_hint = ""
+    try:
+        from kloop import smallstart  # noqa: E402
+        bits = []
+        probes = smallstart.open_probes(name)
+        if probes:
+            bits.append(f"triage {len(probes)} started small-start probe(s) "
+                        f"({', '.join(r['id'] for r in probes)}) before closing experiment")
+        unrev = smallstart.unreviewed_candidates(name, iteration)
+        if unrev:
+            bits.append(f"review {len(unrev)} open small-start candidate(s) "
+                        f"({', '.join(r['id'] for r in unrev)}) — promote/defer/drop "
+                        f"(`kloop.smallstart board`) — before closing hypothesize")
+        if bits:
+            board_hint = " Small-start board: " + "; ".join(bits) + "."
+    except Exception:
+        board_hint = ""
+
     direction = st.get("metric_direction") or "maximize"
     target = st.get("target_score")
     actual = st.get("best_lb") if st.get("best_lb") is not None else st.get("best_cv")
@@ -136,7 +159,7 @@ def main():
 
     _set_count(n + 1)
     _block(
-        f"[autopilot {n + 1}/{MAX_ADVANCES}] Project {name}: {action}. "
+        f"[autopilot {n + 1}/{MAX_ADVANCES}] Project {name}: {action}.{board_hint} "
         f"Keep projects/{name}/state.json, hypotheses.jsonl, progress.jsonl and README.md "
         f"current. Respect Kaggle's daily submission limit. When fully finished run "
         f"`python -m kloop.project set --complete` so autopilot stops."
