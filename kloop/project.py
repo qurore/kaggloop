@@ -54,6 +54,7 @@ def cmd_set(args) -> int:
         "metric": args.metric, "metric_direction": args.metric_direction,
         "scoring_mode": args.scoring_mode,
         "target_score": args.target_score, "target_rationale": args.target_rationale,
+        "max_daily_submissions": args.max_daily_submissions,
         "iteration": args.iteration, "best_cv": args.best_cv, "best_lb": args.best_lb,
         "best_submission": args.best_submission,
     }
@@ -271,6 +272,9 @@ def main(argv=None) -> int:
                       choices=["automated", "judged", "hybrid"], default=None)
     pset.add_argument("--target-score", dest="target_score", type=float, default=None)
     pset.add_argument("--target-rationale", dest="target_rationale", default=None)
+    pset.add_argument("--max-daily-submissions", dest="max_daily_submissions", type=int,
+                      default=None,
+                      help="competition's daily submission cap (see `kloop.kaggle limits`)")
     pset.add_argument("--iteration", type=int, default=None)
     pset.add_argument("--best-cv", dest="best_cv", type=float, default=None)
     pset.add_argument("--best-lb", dest="best_lb", type=float, default=None)

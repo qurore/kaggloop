@@ -35,6 +35,10 @@ to reach.
      pitfalls, leak warnings, magic features, score deltas, format/timeout gotchas.
    - **Rules** — **external-data policy**, allowed frameworks, **code-competition** constraints,
      team & **daily submission** limits, **eligibility** (e.g. identity verification), deadline.
+     Record the daily submission cap into project state (every project carries it):
+     `python -m kloop.kaggle limits <comp> --save` (fetches `max_daily_submissions` from the
+     Kaggle API and writes it to `state.json`; or set it manually with
+     `python -m kloop.project set --max-daily-submissions <n>`).
    - **Leaderboard** — the score distribution + top teams (feeds the target and step 4).
 
    Record the essentials to `projects/<name>/competition.json`. Investigate broadly here; go

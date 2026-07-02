@@ -64,9 +64,11 @@ def main():
             g = state.gap(st.get("target_score"), actual, direction)
             gate = "PASS" if st.get("gate_passed") else "not passed"
             ndec = len(state.load_decisions(name))
+            subs_cap = st.get("max_daily_submissions")
             lines.append(
                 f"current project: {name}\n"
-                f"  comp={comp}  stage={st.get('stage')}  status={st.get('status')}  iter={st.get('iteration')}\n"
+                f"  comp={comp}  stage={st.get('stage')}  status={st.get('status')}  iter={st.get('iteration')}"
+                f"  subs/day={subs_cap if subs_cap is not None else '-'}\n"
                 f"  best_cv={st.get('best_cv')}  best_lb={st.get('best_lb')}  "
                 f"target={st.get('target_score')}  gap={('%.4g' % g) if g is not None else '-'}\n"
                 f"  leakage gate={gate}  decisions logged={ndec} (kloop.journal show)"

@@ -95,22 +95,27 @@ the tabular flow below (ensemble → leakage gate → `kaggle submit` CSV) does 
    python -m kloop.journal log --kind gate --decision "leakage gate passed" --rationale "no fails; checklist affirmed"
    ```
 
-4. **Respect submission budget.** Check remaining count with
-   `python -m kloop.kaggle submissions <comp>`. A round ships **two** submissions — the main
-   ensemble (step 5) plus the challenge submission (step 5b) — so it wants two remaining
-   slots; the **main sub always goes first** when the budget is tight. Keep two
-   final-selection slots in mind for the competition's end.
+4. **Respect submission budget.** The daily cap lives in project state
+   (`max_daily_submissions` — set during survey via `python -m kloop.kaggle limits <comp>
+   --save`); count today's used slots with `python -m kloop.kaggle submissions <comp>`. A round
+   ships **two** submissions — the main ensemble (step 5) plus the challenge submission (step
+   5b) — so it wants two remaining slots; the **main sub always goes first** when the budget is
+   tight. Keep two final-selection slots in mind for the competition's end.
 
 5. **Submit and log it:**
    ```bash
-   python -m kloop.kaggle submit <comp> -f submissions/<name>.csv -m "iter<N>: blend cv=<cv>"
-   python -m kloop.kaggle submissions <comp>      # read back the public score
+   python -m kloop.kaggle submit <comp> -f submissions/<name>.csv -m "iter<N>: blend cv=<cv>" \
+       --watch                                    # polls until scored; prints scoring_seconds
    python -m kloop.project set --best-lb <public_score> --best-submission submissions/<name>.csv \
        --note "iter<N> LB=<public_score> (cv=<cv>)"
    python -m kloop.journal log --kind submission --decision "submitted <name>.csv" \
        --rationale "cv=<cv>, expected ~target" --evidence "submissions/leaderboard.jsonl"
    ```
-   (Append `{file, cv, lb, message, track: "standard", ts}` to `submissions/leaderboard.jsonl`.)
+   (Append `{file, cv, lb, message, track: "standard", scoring_seconds, ts}` to
+   `submissions/leaderboard.jsonl`. `scoring_seconds` — how long Kaggle took to score the
+   submission — comes from the `--watch` output (or `python -m kloop.kaggle watch <comp>` after
+   the fact); poll-interval accuracy is fine, and `null` when the transition wasn't observed —
+   e.g. a code-comp rerun scored overnight.)
 
 5b. **The challenge submission (mandatory second submission — enforced at stage close).** Every
    round also ships the **challenge-track** artifact verified in `/kaggloop-experiment` (the
@@ -120,14 +125,14 @@ the tabular flow below (ensemble → leakage gate → `kaggle submit` CSV) does 
    then submit and journal it:
    ```bash
    python -m kloop.kaggle submit <comp> -f submissions/<name>_challenge.csv \
-       -m "iter<N> CHALLENGE: <the bet> cv=<cv>"
-   python -m kloop.kaggle submissions <comp>       # read back its public score
+       -m "iter<N> CHALLENGE: <the bet> cv=<cv>" --watch    # prints scoring_seconds too
    python -m kloop.journal log --kind challenge_submission \
        --decision "challenge sub <file> LB=<score> (main LB=<score>)" \
        --rationale "<the breakthrough bet + what the LB answered>" \
        --evidence "submissions/leaderboard.jsonl"
    ```
-   Append it to `submissions/leaderboard.jsonl` with `track: "challenge"`. `--best-lb` /
+   Append it to `submissions/leaderboard.jsonl` with `track: "challenge"` (+ its
+   `scoring_seconds`, as in step 5). `--best-lb` /
    `--best-submission` take **whichever of the two submissions scored better** — when the
    challenge sub wins, the leapfrog worked: promote it to next round's standard baseline.
    Only a **hard blocker** — zero remaining daily submissions, a gate-failing / structurally

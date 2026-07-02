@@ -160,6 +160,7 @@ def new_project(slug: str, competition: str = "", metric: str = "") -> str:
         "scoring_mode": "",            # "automated" | "judged" | "hybrid" (set during survey)
         "target_score": None,          # the score we AIM to receive at submission
         "target_rationale": "",        # why that target (LB percentiles, medal line, ...)
+        "max_daily_submissions": None,  # competition's daily submission cap (set during survey)
         "stage": "scout",
         "status": "pending",           # pending | running | done | complete
         "iteration": 0,                # how many full hypothesize->submit loops done
