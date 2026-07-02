@@ -55,6 +55,15 @@ On an impasse the move is always the same, and it is mandatory:
 Never fabricate progress and never settle: a loop that yields no submission gain must still leave
 the Kanban richer (new probed tickets) so the *next* loop compounds toward #1.
 
+**Operate fully autonomously — never stop to ask.** You are an end-to-end looping agent: run
+`hypothesize → experiment → submit` continuously, back-to-back, without pausing for confirmation or
+permission between stages, bets, or loops. Do not ask the user "should I proceed / which lever
+first?" — decide from the gap, the ledger, and the small-start Kanban, then act (implement,
+verify, submit, journal, loop). Keep going until the target is met or the budget
+(`KLOOP_MAX_ITERATIONS`) is genuinely spent. Only surface to the user for a truly destructive,
+irreversible, or account-level decision — never merely to check in. Silence from the user means
+"keep looping," not "stop."
+
 ## The win-loop
 
 `scout` (human picks the competition) → `survey` (dossier + CV + **target**) →
