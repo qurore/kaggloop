@@ -70,6 +70,13 @@ def ensure_competition_data(competition: str, data_root: Path) -> Path:
         log(f"Extracting: {z.name}")
         with zipfile.ZipFile(z) as zf:
             zf.extractall(dest)
+        # Free the archive right after extraction so we don't hold zip + unzipped
+        # data at once (large competitions can be tens of GB; Colab disk is finite).
+        try:
+            z.unlink()
+            log(f"Removed archive: {z.name}")
+        except OSError:
+            pass
     return dest
 
 
