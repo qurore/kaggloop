@@ -21,7 +21,7 @@ The worker, per job:
   4. collects the metric (a ``{"metric": ...}`` stdout line or out/metric.json),
   5. writes $RESULTS/<job_id>/{result.json, run.log, artifacts/*}.
 
-Console output is Japanese; code/comments are English.
+All console output is English (code, comments, and stdout).
 
 Usage (inside Colab, after mounting Drive and uploading kaggle.json)::
 
@@ -56,18 +56,18 @@ def ensure_competition_data(competition: str, data_root: Path) -> Path:
         return dest
     dest.mkdir(parents=True, exist_ok=True)
     if not competition:
-        log("コンペ未指定のためデータDLをスキップします。")
+        log("No competition specified; skipping data download.")
         return dest
-    log(f"コンペデータをダウンロード中: {competition}")
+    log(f"Downloading competition data: {competition}")
     rc = subprocess.run(
         ["kaggle", "competitions", "download", "-c", competition, "-p", str(dest)],
         text=True,
     ).returncode
     if rc != 0:
-        log("✗ データのダウンロードに失敗（ルール同意 / kaggle.json を確認）。")
+        log("x Data download failed (check rules acceptance / kaggle.json).")
         return dest
     for z in dest.glob("*.zip"):
-        log(f"展開中: {z.name}")
+        log(f"Extracting: {z.name}")
         with zipfile.ZipFile(z) as zf:
             zf.extractall(dest)
     return dest
@@ -101,14 +101,14 @@ def _find_metric(stdout: str, out_dir: Path):
 def run_job(job_dir: Path, results_root: Path, data_root: Path) -> None:
     job = json.loads((job_dir / "job.json").read_text())
     job_id = job["job_id"]
-    log(f"ジョブ開始: {job_id}  (entry={job['entrypoint']})")
+    log(f"Job start: {job_id}  (entry={job['entrypoint']})")
 
     # Claim it so a second worker / re-run won't pick it up.
     running = job_dir / "job.running"
     try:
         (job_dir / "job.json").rename(running)
     except OSError:
-        log("既に処理中のジョブのようです。スキップします。")
+        log("Job already claimed; skipping.")
         return
 
     out_dir = results_root / job_id
@@ -174,8 +174,8 @@ def run_job(job_dir: Path, results_root: Path, data_root: Path) -> None:
         running.rename(job_dir / "job.done")
     except OSError:
         pass
-    status = "✓ 成功" if not is_buggy else "✗ 失敗(buggy)"
-    log(f"ジョブ終了: {job_id}  {status}  metric={metric}  ({dur:.0f}s)")
+    status = "ok" if not is_buggy else "failed(buggy)"
+    log(f"Job done: {job_id}  {status}  metric={metric}  ({dur:.0f}s)")
 
 
 def pending_jobs(queue_root: Path):
@@ -204,21 +204,21 @@ def main(argv=None) -> int:
     results.mkdir(parents=True, exist_ok=True)
     data.mkdir(parents=True, exist_ok=True)
 
-    log(f"ワーカー起動  queue={queue}  results={results}")
+    log(f"Worker start  queue={queue}  results={results}")
     if not (args.once or args.loop):
         args.loop = True
 
     while True:
         jobs = pending_jobs(queue)
         if jobs:
-            log(f"{len(jobs)} 件の新規ジョブを検出。")
+            log(f"Detected {len(jobs)} new job(s).")
             for jd in jobs:
                 try:
                     run_job(jd, results, data)
                 except Exception as e:  # never let one bad job kill the worker
-                    log(f"✗ ジョブ実行中に例外: {jd.name}: {e}")
+                    log(f"x Exception while running job: {jd.name}: {e}")
         elif args.once:
-            log("キューは空です。--once のため終了します。")
+            log("Queue empty; exiting (--once).")
         if args.once:
             break
         time.sleep(args.interval)
