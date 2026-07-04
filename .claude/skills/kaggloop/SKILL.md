@@ -66,7 +66,10 @@ cap). This gap mechanism is the most important part of the system.
    `.claude/settings.json`) — one per axis (notebooks · discussions ·
    literature) — each briefed on the current gap + prior recon and returning a ≤15-bullet,
    ref-backed digest that synthesis merges into `recon.md`. (See `/kaggloop-hypothesize` →
-   "Parallel recon protocol".)
+   "Parallel recon protocol".) The same capped, read-only fan-out also **verifies results
+   adversarially** (a skeptic per ready result — refute the CV gain / hunt leakage the gate missed)
+   and runs **judged-comp judge panels** — see `/kaggloop-experiment` → "Parallel verification
+   fan-out".
 9. **Stand on the winners — THE IRON RULE (enforced):** every loop (survey + each hypothesize)
    sorts the Code tab by best **Public Score** and syncs the **top-5** notebooks locally —
    `python -m kloop.notebooks sync` — **byte-deduped** (a pull byte-identical to the previous
