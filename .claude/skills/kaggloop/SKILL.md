@@ -62,7 +62,8 @@ cap). This gap mechanism is the most important part of the system.
    judge-rubric gates, journal append-only, autopilot bounds. After any hook edit,
    `python -m kloop.selfimprove hookcheck` must pass. (See `/kaggloop-submit` step 6c.)
 8. **Parallel recon by default:** wide research (survey's broad read; every loop's re-recon) fans
-   out as concurrent **read-only sub-agents** — one per axis (notebooks · discussions ·
+   out as concurrent **read-only sub-agents** (up to `KLOOP_MAX_SUBAGENTS`, default 4, set in
+   `.claude/settings.json`) — one per axis (notebooks · discussions ·
    literature) — each briefed on the current gap + prior recon and returning a ≤15-bullet,
    ref-backed digest that synthesis merges into `recon.md`. (See `/kaggloop-hypothesize` →
    "Parallel recon protocol".)

@@ -2,8 +2,9 @@
   "env": {
     "PYTHONUNBUFFERED": "1",
     "KLOOP_AUTOPILOT": "0",
-    "KLOOP_AUTOPILOT_MAX": "10",
-    "KLOOP_MAX_ITERATIONS": "3",
+    "KLOOP_AUTOPILOT_MAX": "100",
+    "KLOOP_MAX_ITERATIONS": "100",
+    "KLOOP_MAX_SUBAGENTS": "6",
     "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
   },
   "permissions": {

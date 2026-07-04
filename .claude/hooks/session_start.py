@@ -95,6 +95,8 @@ def main():
 
     autopilot = os.environ.get("KLOOP_AUTOPILOT", "0") == "1"
     lines.append(f"autopilot:   {'ON (auto stage advance)' if autopilot else 'off (confirm each stage)'}")
+    max_sub = os.environ.get("KLOOP_MAX_SUBAGENTS", "4")
+    lines.append(f"subagents:   max {max_sub} concurrent per research fan-out (KLOOP_MAX_SUBAGENTS)")
     lines.append("Skills: /kaggloop, /kaggloop-scout, -survey, -hypothesize, -experiment, -submit")
 
     print("\n".join(lines))
