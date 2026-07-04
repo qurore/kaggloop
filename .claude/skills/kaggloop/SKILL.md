@@ -25,9 +25,10 @@ loop's compass:
 python -m kloop.project gap --log     # target vs actual; tells you whether to keep looping
 ```
 
-The loop continues while the target is unmet and budget remains; it finalizes when the
-target is met or `KLOOP_MAX_ITERATIONS` is spent. This gap mechanism is the most important
-part of the system.
+The loop continues **by default until first place (the target) is reached** — for as long as it
+takes, never halting for lack of ideas and never stopping to ask the user; it finalizes only on that
+win or a hard external limit (deadline / explicit user stop / a user-set `KLOOP_MAX_ITERATIONS`
+cap). This gap mechanism is the most important part of the system.
 
 ## What else makes it different
 
@@ -93,7 +94,9 @@ part of the system.
 | 3. Experiment  | `/kaggloop-experiment`  | Colab results, CV, OOF preds, **per-experiment leakage checks** | auto |
 | 4. Submit      | `/kaggloop-submit`      | **gate verify** → ensemble → Kaggle submit → LB → **gap decision** → **self-improve pass** | auto |
 
-Inner loop **2 → 3 → 4 → 2** repeats until the target is met or the budget is spent.
+Inner loop **2 → 3 → 4 → 2** repeats — **by default indefinitely, until first place (the target) is
+reached** — never halting for lack of ideas or to ask the user (see "Operating principles → Loop
+until #1").
 
 ## Two ways to start (the input → TLDR → decide → flow path)
 
@@ -146,6 +149,12 @@ blind/static output size times out → "Submission Format Error"). Full playbook
 
 ## Operating principles
 
+- **Loop until #1 — forever by default, never stop to ask.** Unless the user says otherwise, keep
+  running the loop until first place (`target_score`); a plateau or an empty idea list is a cue to
+  re-recon and loop again, never to finalize or to ask a question. Absorb the user's streamed-in
+  sources mid-loop without pausing, and don't yield the turn to wait on compute — poll/heartbeat and
+  resume the loop yourself. The only pause is scout's one-time go/no-go; `KLOOP_MAX_ITERATIONS` is an
+  opt-in hands-off-autopilot cap, not a default stop. See CLAUDE.md → "Loop until first place".
 - **Learn from the winners first, then innovate.** Every round starts from the synced top-5
   Public-Score notebooks (`kloop.notebooks sync` — the iron rule, enforced at survey/hypothesize
   close); the best public notebook is the floor and the baseline, and moonshots are built on top

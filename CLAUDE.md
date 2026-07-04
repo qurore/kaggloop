@@ -19,8 +19,10 @@ highest-leverage fix?), and loop the verification to close it:
 python -m kloop.project gap --log     # target vs actual — the loop's compass
 ```
 
-It loops `hypothesize → experiment → submit` while the target is unmet and budget remains,
-then finalizes. This gap mechanism is the most important part of the system.
+It loops `hypothesize → experiment → submit` **continuously — by default until first place
+(the `target_score`) is reached** — and finalizes only on that win or a hard external limit
+(deadline / explicit user stop / a user-set iteration cap), never for lack of ideas and never to
+stop and ask. This gap mechanism is the most important part of the system.
 
 The **score** is normally an automated CV/leaderboard number. When a competition has **no
 automated scoring** (a human-judged writeup / analytics / "strategy" comp), the loop is
@@ -55,14 +57,26 @@ On an impasse the move is always the same, and it is mandatory:
 Never fabricate progress and never settle: a loop that yields no submission gain must still leave
 the Kanban richer (new probed tickets) so the *next* loop compounds toward #1.
 
-**Operate fully autonomously — never stop to ask.** You are an end-to-end looping agent: run
-`hypothesize → experiment → submit` continuously, back-to-back, without pausing for confirmation or
-permission between stages, bets, or loops. Do not ask the user "should I proceed / which lever
-first?" — decide from the gap, the ledger, and the small-start Kanban, then act (implement,
-verify, submit, journal, loop). Keep going until the target is met or the budget
-(`KLOOP_MAX_ITERATIONS`) is genuinely spent. Only surface to the user for a truly destructive,
-irreversible, or account-level decision — never merely to check in. Silence from the user means
-"keep looping," not "stop."
+**Loop until first place — forever by default — and never stop to ask (user-forced default).**
+Unless the user gives a specific instruction otherwise, the loop's default terminal condition is
+**winning: reaching first place (`target_score`)**. Run `hypothesize → experiment → submit`
+continuously, back-to-back, closing the metric gap loop after loop for **as long as it takes** — a
+plateau, a refuted bet, or "I'm out of ideas" is **never** a reason to finalize; it is the cue to
+hunt harder (re-recon *every* source) and loop again. **Never stop the loop to ask the user
+anything** — not "should I proceed?", not "which lever first?", not "is this good enough / should I
+keep going?". Decide from the gap, the ledger, and the small-start Kanban, then act (implement,
+verify, submit, journal, loop). The user **streams in sources and intel continuously**; absorb each
+one mid-loop and keep going — never convert an incoming source into a loop-halting question. Silence
+from the user means "keep looping toward #1," never "stop." The loop ends **only** on a genuine
+terminal: **first place reached**, the **competition deadline**, the user **explicitly** telling you
+to stop, or a user-set iteration cap. `KLOOP_MAX_ITERATIONS` is an **opt-in hands-off-autopilot
+safety bound, not a default stop** — the continuous-autonomy runs this default assumes raise or unset
+it, and while any gap to #1 remains the agent keeps looping. To keep "forever" real in practice,
+**don't yield the turn to wait**: while blocked on a long Colab job or a pending submission score,
+poll/heartbeat (e.g. a `ScheduleWakeup`) and resume the loop yourself rather than handing back to the
+user. The **only** pre-existing pause is scout's one-time go/no-go on *which* competition to enter
+(below); you may still surface for a truly destructive, irreversible real-world action — but a
+routine gated submission is a reversible two-way door and never needs a check-in.
 
 ## The win-loop
 
@@ -76,8 +90,9 @@ Each `SKILL.md` is authoritative.
 
 ## The full loop, end to end (high level)
 
-One pass, skill by skill; the inner loop (2→3→4) repeats until the target is met or the budget
-is spent:
+One pass, skill by skill; the inner loop (2→3→4) repeats — **by default indefinitely, until first
+place (the target) is reached** — never halting for lack of ideas or to ask (see the win-only
+mandate above):
 
 0. **`/kaggloop-scout`** — human picks the competition (URL/slug, or discovery shortlist).
    Creates the project + `TLDR.md`; you present **go/no-go**. *(The one mandatory human gate.)*
@@ -114,10 +129,12 @@ is spent:
    iteration learning journal** (`iterations/iter_<NNN>_*.md`) → **results-driven
    self-improvement pass** (`kloop.selfimprove check`; only a real score improvement may
    trigger pipeline edits — see "Pipeline self-improvement" below) → loop decision.
-5. **Loop or finalize.** Gap remains + budget left ⇒ `iteration+1`, back to step 2 focused on the
-   gap (carry kept models + the journal forward). Target met or `KLOOP_MAX_ITERATIONS` spent ⇒
-   finalize with the best submission (remind the user to set the final selection before the
-   deadline).
+5. **Loop or finalize.** Gap to #1 remains ⇒ `iteration+1`, back to step 2 focused on the gap
+   (carry kept models + the journal forward) — **by default loop indefinitely; an exhausted idea
+   list means re-recon and loop again, not finalize and not a question to the user.** Finalize only
+   on a real terminal — **first place / target met**, the deadline, an explicit user stop, or a
+   user-set `KLOOP_MAX_ITERATIONS` cap — then hand off the best submission (remind the user to set
+   the final selection before the deadline).
 
 Every stage **journals its decision**; nothing closes without one. Run it hands-on stage by
 stage, or let `/kaggloop` orchestrate; `KLOOP_AUTOPILOT=1` lets the Stop hook auto-advance and
@@ -434,7 +451,11 @@ gate needs: `oof.npy`, `y_true.npy`, `folds.npy`, `groups.npy`/`time.npy`, `X.np
 Default: pause between stages. `KLOOP_AUTOPILOT=1` lets the Stop hook auto-advance and loop
 hands-off, bounded by `KLOOP_AUTOPILOT_MAX` (per-session steps) and `KLOOP_MAX_ITERATIONS`
 (full loops), driven by the gap to target. It never auto-advances out of `scout`. Tell the
-user it exists; don't enable it silently.
+user it exists; don't enable it silently. **These bounds cap the *Stop hook's hands-off
+auto-advancing* only — a runaway-safety guard, not a licence to stop while a gap to #1 remains.**
+The agent's own disposition is the win-only mandate above: loop until first place, never
+self-terminate, never stop to ask; for continuous-autonomy runs raise or unset
+`KLOOP_MAX_ITERATIONS`.
 
 ## Literature search (MCP)
 

@@ -62,8 +62,9 @@ the tabular flow below (ensemble → leakage gate → `kaggle submit` CSV) does 
    judged, the per-criterion gap + its cause with cited sources, next plan), run the
    **results-driven self-improvement pass** (the judged rubric total recorded via `--best-lb`
    feeds `kloop.selfimprove check` exactly like a leaderboard score), and make the loop
-   decision on the judged gap: loop back to `hypothesize` on the weakest-weighted criteria, or
-   finalize when the target rubric score is met or the budget is spent.
+   decision on the judged gap: **by default loop back to `hypothesize`** on the weakest-weighted
+   criteria (never stop to ask), finalizing only when the target rubric score is met or a hard
+   external limit is hit (deadline / explicit user stop / user-set `KLOOP_MAX_ITERATIONS` cap).
 
 ## Procedure
 
@@ -240,8 +241,10 @@ the tabular flow below (ensemble → leakage gate → `kaggle submit` CSV) does 
         --decision "target met, finalize" --decision-kind loop_decision
      python -m kloop.project set --complete --decision "final: cv=<>, lb=<>, sub=<file>" --decision-kind loop_decision
      ```
-   - **Gap remains and budget left** (`iteration+1 < KLOOP_MAX_ITERATIONS`): loop, focused on
-     the gap.
+   - **Gap to #1 remains (the default):** loop, focused on the gap — **by default indefinitely,
+     never stopping to ask the user.** An exhausted idea list is *not* a stop: re-recon every source
+     and loop again. (`KLOOP_MAX_ITERATIONS` bounds only the *hands-off autopilot* Stop hook; a
+     continuous-autonomy run raises/unsets it, so the agent keeps looping while a gap remains.)
      ```bash
      python -m kloop.project set --stage submit --status done --iteration <N+1> \
         --decision "loop: close gap via <plan>" --decision-kind loop_decision
@@ -249,8 +252,9 @@ the tabular flow below (ensemble → leakage gate → `kaggle submit` CSV) does 
      then `/kaggloop-hypothesize` (carry forward kept models + the gap analysis; its re-recon
      reviews the small-start board — promote/defer/drop each open candidate from this round's
      probes, enforced).
-   - **Budget spent, target unmet:** finalize honestly with the best submission and the gap
-     recorded.
+   - **Hard external limit only (deadline / explicit user stop / a user-set `KLOOP_MAX_ITERATIONS`
+     cap), target unmet:** finalize honestly with the best submission and the gap recorded. "Out of
+     ideas" or "score plateaued" is **not** such a limit — keep looping.
 
 ## Code / simulation competitions (submission = a notebook, not a CSV) — READ FIRST
 
