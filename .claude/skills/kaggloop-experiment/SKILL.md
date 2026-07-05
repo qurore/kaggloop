@@ -206,6 +206,17 @@ If the comp ships an **SDK / evaluation harness** and you submit code (an attack
   "CV" is (a) offline unit-tests of the exact scoring/predicate code and (b) that the harness
   produces a **valid output file without raising**. A live LLM backend may be unavailable
   locally, so treat local runs as *structural* checks; the real score needs the hidden rerun.
+- **When the real backend is GPU-gated, MEASURE the binding constraint on a GPU you have —
+  don't fly blind through multi-hour submissions.** If the hidden rerun is latency/throughput-
+  bound (real slow models under a per-phase time budget), the score is dominated by one
+  measurable number (per-candidate latency, firing/hit rate, tokens-before-tool-call).
+  Reproduce the *real* model(s) in a GPU harness — Colab, or a GPU-with-internet Kaggle kernel
+  loading the shipped model weights — and measure that number **per design variant**, then pick
+  the variant on real data instead of A/B-ing templates through blind rerun submissions (each
+  costing hours + a daily slot). Different backends can have **opposite optima** (one stacks
+  multiple hits per item, another doesn't) → probe per-backend, or have the attack self-optimize
+  the template against the live rerun. Offline measurement of the true constraint is the highest-
+  leverage move on a GPU-gated code comp; blind submission A/B is the trap.
 - The hidden rerun replays your output against the **real (slow) models under a per-phase time
   budget** — a blind/static output size **times out → "Submission Format Error"**. Design for
   it here: **budget-aware verify-and-keep** (run each candidate live, track the slowest, stop
