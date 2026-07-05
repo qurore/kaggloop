@@ -29,7 +29,7 @@ too.
    (Path varies by OS / Drive version — use the real synced location.)
 4. Put your Kaggle token where the worker can read it: copy `~/.kaggle/kaggle.json` to
    `MyDrive/kaggloop/kaggle.json` (the notebook also offers an upload prompt).
-5. Open `kaggloop_worker.ipynb` in Colab, set **Runtime → GPU**, and run all cells. The
+5. Open `colab_kaggloop.ipynb` in Colab, set **Runtime → GPU**, and run all cells. The
    last cell starts the polling worker; leave the tab open while a campaign runs.
 
 ## How a job flows

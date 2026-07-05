@@ -93,7 +93,7 @@ def submit(run_id: str, entrypoint: str, args: list[str], requirements: str,
     print(f"job submitted: {job_id}")
     print(f"  queue: {qdir}")
     print("  It runs automatically if a Colab worker is up. "
-          "If not, open colab/kaggloop_worker.ipynb.")
+          "If not, open colab/colab_kaggloop.ipynb.")
     return job_id
 
 

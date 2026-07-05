@@ -264,7 +264,7 @@ budget — see `/kaggloop-submit` → "Code / simulation competitions".
 .claude/self-improvements.jsonl  append-only log of results-driven pipeline self-improvements
 .mcp.json              MCP servers: arxiv, semantic-scholar (science) + kaggle (official, remote)
 kloop/                 thin helpers: state, project, ledger, smallstart, kaggle, colab, score, gate, journal, standing, selfimprove
-colab/                 worker.py (GPU compute) + kaggloop_worker.ipynb + README
+colab/                 worker.py (GPU compute) + colab_kaggloop.ipynb + README
 competitions/          TEMPLATE_competition.md + shortlist/ (discovery scratch)
 projects/<name>/       one self-contained project per competition (contents gitignored)
 ```

@@ -70,7 +70,7 @@ the one-line toggle to version your projects in a private fork.
 | `.claude/hooks/` | `session_start`, `guard_experiment_exec`, `guard_submission` (gate enforcement), `log_tool_use`, `stop_autopilot` (gap-driven autopilot) |
 | `.mcp.json` | science MCP servers: `arxiv`, `semantic-scholar` |
 | `kloop/` | helpers: `state`, `project`, `ledger`, `kaggle`, `colab`, `score`, `gate`, `journal` |
-| `colab/` | `worker.py` (GPU compute) + `kaggloop_worker.ipynb` + `README.md` |
+| `colab/` | `worker.py` (GPU compute) + `colab_kaggloop.ipynb` + `README.md` |
 | `competitions/` | `TEMPLATE_competition.md` + `shortlist/` (discovery scratch) |
 | `projects/<name>/` | one self-contained project per competition (gitignored) |
 
