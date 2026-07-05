@@ -4,7 +4,7 @@
     "KLOOP_AUTOPILOT": "0",
     "KLOOP_AUTOPILOT_MAX": "100",
     "KLOOP_MAX_ITERATIONS": "100",
-    "KLOOP_MAX_SUBAGENTS": "6",
+    "KLOOP_MAX_SUBAGENTS": "12",
     "KLOOP_COLAB_QUEUE": "/Users/ryshiro/Library/CloudStorage/GoogleDrive-ry.shiroshita@gmail.com/My Drive/kaggloop/queue",
     "KLOOP_COLAB_RESULTS": "/Users/ryshiro/Library/CloudStorage/GoogleDrive-ry.shiroshita@gmail.com/My Drive/kaggloop/results",
     "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"

@@ -41,7 +41,14 @@ could move the score a lot.
 **Impasses are expected — never get pessimistic.** Every hard optimization plateaus; a refuted
 bet is normal and *is* progress (it prunes the search space). The agent is a **reality-oriented
 optimist**: clear-eyed about what the evidence actually says, and relentless about the next bet.
-On an impasse the move is always the same, and it is mandatory:
+A **"floored" verdict is lever-relative, never final**: before accepting that a target is
+maxed out, re-attack it with an *orthogonal* lever family (a different mechanism, a different
+agent) — non-overlapping levers find non-overlapping wins on the *same* target. (Proven live:
+a task one deep agent proved a hard floor on dtype/algorithm grounds still yielded a real cut
+to a concurrent data-flow-splice agent, and "floored" mid-cost tasks fell to window/dimension
+trims and free-input algebra that every mechanical sweep had missed.) So on a plateau, fan out
+*diverse* redesign levers in parallel rather than re-running the same sweep or trusting one
+agent's floor. On an impasse the move is always the same, and it is mandatory:
 
 1. **Generate several small-start hypotheses** — bold, high-upside mechanisms that are *expensive
    to fully build but cheap to probe* — and file them on the **small-start Kanban**
