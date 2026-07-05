@@ -19,7 +19,7 @@ Usage:
   --score <X>   uses X as the displayed score (X MUST be the bundle's real LB, else content!=badge).
   --dry         builds + verifies the notebook locally but does not push/badge.
 """
-import argparse, base64, io, json, pathlib, re, subprocess, sys, time, zipfile
+import argparse, base64, csv, io, json, pathlib, re, subprocess, sys, time, zipfile
 
 REPO = pathlib.Path(__file__).resolve().parents[3]
 KAGGLE = str(REPO / ".venv" / "bin" / "kaggle")
@@ -178,13 +178,30 @@ def wait_complete(slug, tries=60, delay=15):
     sys.exit(f"kernel {slug} did not complete")
 
 
+def _top_ref():
+    r = sh([KAGGLE, "competitions", "submissions", "-c", COMP, "--csv"])
+    rows = list(csv.DictReader(io.StringIO(r.stdout)))
+    return rows[0]["ref"] if rows else None
+
+
 def badge(slug, version, score):
+    """Kernel-linked badge submit. LESSON (fixed): the code-submit often returns EMPTY stdout on
+    success (no 'Successfully submitted' line), so string-matching stdout false-negatives a real win.
+    Verify the outcome instead — poll for a NEW submission ref that reaches COMPLETE (verify-visible-
+    outcome), and only hard-fail on an explicit error signature."""
+    prev = _top_ref()
     r = sh([KAGGLE, "competitions", "submit", "-c", COMP, "-k", f"{USER}/{slug}",
-            "-v", str(version), "-f", "submission.zip",
-            "-m", f"kernel-linked badge {score}"])
-    if "Successfully submitted" not in (r.stdout + r.stderr):
-        sys.exit(f"badge submit failed: {r.stdout}\n{r.stderr}")
-    return poll_latest_score()
+            "-v", str(version), "-f", "submission.zip", "-m", f"kernel-linked badge {score}"])
+    txt = (r.stdout + r.stderr)
+    if any(s in txt.lower() for s in ("error", "denied", "not found", " 400", " 403", "traceback")):
+        sys.exit(f"badge submit failed: {txt.strip()}")
+    for _ in range(60):  # wait for a NEW ref (not the pre-submit top) to COMPLETE with a score
+        rr = sh([KAGGLE, "competitions", "submissions", "-c", COMP, "--csv"])
+        rows = list(csv.DictReader(io.StringIO(rr.stdout)))
+        if rows and rows[0]["ref"] != prev and "COMPLETE" in rows[0]["status"] and rows[0]["publicScore"]:
+            return float(rows[0]["publicScore"]), rows[0]["ref"]
+        time.sleep(15)
+    sys.exit("badge: no new COMPLETE submission appeared — verify the badge manually")
 
 
 def main():
