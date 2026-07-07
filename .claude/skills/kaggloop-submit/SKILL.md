@@ -330,6 +330,19 @@ does **not** map 1:1. Hard-won rules — follow them to avoid wasting the daily 
 9. **The dual-submission mandate applies here too.** The challenge-track bet ships as its own
    notebook version (e.g. `iter<N>-challenge`), submitted after the main version when the
    budget allows; journal `challenge_submission` / `challenge_deferred` exactly as in step 5b.
+10. **Reproduce-then-dominate is the baseline for the primary bundle (user-forced, absolute).**
+    Before assembling our submission, if any public notebook/bundle scores above our current best,
+    **copy its exact output wholesale as the base** (reproduce an equal score first — the
+    guaranteed floor) and build our bundle as a **per-task cheapest-correct merge with THEIR full
+    bundle always a candidate**, so it provably **dominates** theirs (≥ their score, strictly
+    greater where we win). Never ship a bundle that scores *below* an available LB-proven public
+    top — that is the cardinal sin. Never fresh-gate an LB-proven top bundle into a lower total.
+11. **UPGRADE THE PUBLIC NOTEBOOK ON EVERY SCORE IMPROVEMENT (user-forced).** Whenever this
+    round's realized score beats the prior best, immediately invoke the **`/kaggloop-publish`**
+    skill to upgrade our public Kaggle notebook to the new best bundle with a matching
+    Public-Score badge (vote-preserving) — every improvement, every loop, not just the first — so
+    the published notebook always tracks our current best. (Honor any explicit user threshold on
+    the *first* publish, e.g. "only once we are public #1"; after that, upgrade on every gain.)
 
 ## Output to the user
 A scoreboard: this round's **two submissions (main + challenge)** with CV vs public LB each,

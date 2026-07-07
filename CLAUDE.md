@@ -72,7 +72,13 @@ plateau, a refuted bet, or "I'm out of ideas" is **never** a reason to finalize;
 hunt harder (re-recon *every* source) and loop again. **Never stop the loop to ask the user
 anything** — not "should I proceed?", not "which lever first?", not "is this good enough / should I
 keep going?". Decide from the gap, the ledger, and the small-start Kanban, then act (implement,
-verify, submit, journal, loop). The user **streams in sources and intel continuously**; absorb each
+verify, submit, journal, loop). **MANDATORY (user-forced): NEVER call `AskUserQuestion` or any
+input-requesting / loop-halting tool, and never present the user a menu of directions. Even a
+genuine strategic fork (e.g. "keep grinding vs pivot the whole approach") is decided AUTONOMOUSLY
+from the win-only mandate — pick the option that best pursues `target_score` / real #1 and act on
+it; do not stop to have the user choose. Requesting input on your own to "confirm the direction"
+is a violation.** The single allowed pause remains scout's one-time go/no-go on *which* competition
+to enter. The user **streams in sources and intel continuously**; absorb each
 one mid-loop and keep going — never convert an incoming source into a loop-halting question. Silence
 from the user means "keep looping toward #1," never "stop." The loop ends **only** on a genuine
 terminal: **first place reached**, the **competition deadline**, the user **explicitly** telling you
@@ -131,7 +137,13 @@ mandate above):
 4. **`/kaggloop-submit`** — ensemble the kept models → **pass the leakage gate (enforced)** →
    **submit twice, both new attempts: the primary (highest-confidence improvement), then the challenge submission**
    (each gated; journal `challenge_submission`, or `challenge_deferred` on a hard blocker —
-   enforced at stage close) → record both LBs (`best_lb` = the better) → **study the gap**
+   enforced at stage close) → record both LBs (`best_lb` = the better) →
+   **UPGRADE THE PUBLIC NOTEBOOK ON EVERY SCORE IMPROVEMENT (user-forced):** whenever this round's
+   realized score beats the prior best, immediately run the **`/kaggloop-publish`** skill to
+   upgrade our public Kaggle notebook to the new best bundle with a matching Public-Score badge
+   (vote-preserving) — every improvement, every loop, not just the first — so the published
+   notebook always tracks our current best (subject to any explicit user threshold on the *first*
+   publish, e.g. "only once we are public #1") → **study the gap**
    (`kloop.project gap`) → **write the
    iteration learning journal** (`iterations/iter_<NNN>_*.md`) → **results-driven
    self-improvement pass** (`kloop.selfimprove check`; only a real score improvement may
@@ -172,13 +184,23 @@ sharp, well-grounded hypothesis can leapfrog the board. Invest the most thought 
   not values) + stealable techniques logged to `recon.md`. `kloop.project set` **refuses to close
   survey/hypothesize without a fresh sync** (only `scoring_mode=judged` is exempt — no Public
   Scores; exemplar writeups replace it).
-- **The best public notebook is the baseline — learn from the winners, then innovate.** Never
-  start from scratch-written code while a stronger public notebook exists: iteration 0
-  **reproduces the top synced notebook** (adapted to the dossier CV + gate artifacts), its Public
-  Score is the **floor** (`target_score` sits strictly above it — at/below it we lose to
-  copy-paste), and every breakthrough is built **on top of** that baseline. Whenever a sync shows
-  the best public notebook above our current best, closing to it is automatically the next
-  round's #1 bet.
+- **THE REPRODUCE-THE-FLOOR ABSOLUTE PRINCIPLE — copy the highest-scoring notebook WHOLESALE to
+  match its score, make THAT the baseline, then dominate it (user-forced, non-negotiable).** Never
+  rebuild the top solution from your own parts and end up *below* it — that is the cardinal sin
+  (it happened here: a bottom-up, fresh-gated rebuild landed at 7241.73 while the public top was
+  7243.08). The mandatory move whenever a public notebook (or bundle/submission artifact) scores
+  above our current best is: **(1) take its exact output wholesale** (fork the notebook / pull its
+  `submission.zip` / copy its bytes) so we **reproduce an equal-or-nearly-equal score first** — the
+  guaranteed floor, no cleverness required; **(2) then OVERLAY our improvements only where we are
+  strictly better** (per-task cheapest-correct with THEIR full bundle always a candidate, so the
+  merge provably *dominates* theirs → our score ≥ theirs, strictly greater wherever we win). This
+  reproduce-then-dominate construction is the default baseline for **every** loop and every
+  competition, automated or judged. `target_score` sits strictly above that reproduced floor.
+  Corollary: never fresh-gate away a top LB-proven bundle's tasks into a *lower* total — an
+  LB-verified public bundle is hidden-proven as a whole; use it as the base and only *improve* on
+  top. Whenever a sync shows the best public notebook above our current best, **reproduce-and-
+  dominate it is automatically the round's #1 bet**, ahead of any from-scratch golf. See
+  [[reproduce-the-floor-copy-then-dominate]].
 - **Read the board, then reverse-engineer the winners — every loop, logged.** Each round, pull
   the leaderboard and cross-reference top-LB teams with their public kernels/working-notes +
   discussions, and **append the findings to the cumulative recon log

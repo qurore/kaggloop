@@ -22,6 +22,18 @@ then renovate for the breakthrough. And whenever a loop's sync surfaces a public
 beats our current best, adapting it (or cherry-picking its edge into our pipeline) is the
 top-priority experiment — losing to copy-paste is never acceptable.
 
+**REPRODUCE-THE-FLOOR IS ABSOLUTE AND LITERAL (user-forced).** "Reproduce" means **copy the top
+notebook's output WHOLESALE** — fork it / pull its exact `submission.zip` / copy its bytes — so we
+score **equal-or-nearly-equal to it first** (the guaranteed floor, no rebuilding). NEVER re-derive
+the top solution from your own parts and land *below* it (the cardinal sin — a bottom-up,
+fresh-gated rebuild once landed at 7241.73 while the public top was 7243.08). Then build our best
+as a **reproduce-then-dominate merge**: per-task cheapest-correct with THEIR full bundle always a
+candidate, so the result **provably dominates** theirs (≥ their score, strictly greater wherever we
+win). Do NOT fresh-gate an LB-proven top bundle's tasks into a *lower* total — the bundle is
+hidden-proven as a whole; use it as the base and only *improve* on top. This is the default
+baseline construction for **every** loop. (In code/artifact comps this is a per-task ONNX/file
+merge; in judged comps it is starting from the strongest exemplar writeup and improving.)
+
 ## Preconditions
 - A ranked ledger with `proposed`/`testing` hypotheses and a CV scheme.
   `python -m kloop.project set --stage experiment --status running`.
