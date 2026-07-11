@@ -99,9 +99,14 @@ def pull_template(slug, dest):
     return ipynb[0]
 
 
-def build_notebook(template, bundle, costs, score, slug, branding, prefix, outdir):
+def build_notebook(template, bundle, costs, score, slug, branding, prefix, outdir, score_free_title=False):
     """Swap the bundle B64 + COSTS + all score strings; target metadata id = CURRENT slug so the
-    push UPDATES the voted kernel (LESSON 4)."""
+    push UPDATES the voted kernel (LESSON 4).
+
+    score_free_title=True keeps the SCORE OUT OF THE TITLE (hence out of the slug): the title
+    becomes `{prefix} | {branding}` so the kernel re-slugs ONCE to a stable score-free slug and
+    never churns again. The score still lives in the body markdown + the Public-Score badge, so
+    content==badge is unaffected."""
     outdir.mkdir(parents=True, exist_ok=True)
     b64 = base64.b64encode(pathlib.Path(bundle).read_bytes()).decode()
     costs_json = json.dumps(costs, separators=(",", ":"))
@@ -140,8 +145,9 @@ def build_notebook(template, bundle, costs, score, slug, branding, prefix, outdi
         sys.exit(f"template swap incomplete: b64={swapped_b64} costs={swapped_costs}")
     out_nb = outdir / pathlib.Path(template).name
     out_nb.write_text(json.dumps(nb))
+    title = f"{prefix} | {branding}" if score_free_title else f"{prefix} {score} | {branding}"
     kmeta = {
-        "id": f"{USER}/{slug}", "title": f"{prefix} {score} | {branding}",
+        "id": f"{USER}/{slug}", "title": title,
         "code_file": out_nb.name, "language": "python", "kernel_type": "notebook",
         "is_private": "false", "enable_gpu": "false", "enable_internet": "true",
         "dataset_sources": [], "competition_sources": [COMP], "kernel_sources": [],
@@ -211,6 +217,8 @@ def main():
     ap.add_argument("--project", default="neurogolf_2026")
     ap.add_argument("--branding", default="github.com/qurore/kaggloop")
     ap.add_argument("--name-prefix", default="NeuroGolf", dest="prefix")
+    ap.add_argument("--score-free-title", action="store_true", dest="score_free_title",
+                    help="keep the score OUT of the title/slug (stable score-free slug; score stays in body+badge)")
     ap.add_argument("--dry", action="store_true")
     a = ap.parse_args()
     bundle = pathlib.Path(a.bundle).resolve()
@@ -236,8 +244,10 @@ def main():
     print(f"[costs] {len(costs)} tasks (task285={costs.get('285')})")
 
     template = pull_template(slug, work / "template")
-    out_nb = build_notebook(template, bundle, costs, score, slug, a.branding, a.prefix, work / "out")
-    print(f"[build] notebook built, content-match OK (only score string = {score})")
+    out_nb = build_notebook(template, bundle, costs, score, slug, a.branding, a.prefix, work / "out",
+                            score_free_title=a.score_free_title)
+    print(f"[build] notebook built, content-match OK (only score string = {score}); "
+          f"title={'score-free' if a.score_free_title else 'with-score'}")
 
     if a.dry:
         print(f"[dry] would push to {slug} + badge {score}; skipping (--dry)")
