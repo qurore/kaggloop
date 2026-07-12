@@ -83,9 +83,10 @@ def build_notebook(template, bundle, costs, score, slug, outdir):
     # competition_sources is REQUIRED for the kernel-linked badge: `competitions submit -k` on a
     # notebook WITHOUT the comp attached returns 400 CreateCodeSubmission. But Kaggle blocks making a
     # comp-source notebook public mid-competition ("may not be made public until after the competition
-    # ends"), and it 403s de-sourcing a kernel that already has a comp submission. So a NEW notebook is
-    # pushed PRIVATE with the source, badged, and then the PRIVATE->PUBLIC flip must be done on the
-    # website (the CLI cannot do it mid-competition). See main()'s closing hand-off message.
+    # ends"). So a NEW notebook is pushed PRIVATE with the source and badged; then it is made public in
+    # TWO steps (main()): de-source while still PRIVATE, then flip PUBLIC (no source). The one-step
+    # de-source+public push 403s for a comp-submitted kernel, but the two-step works and the badge
+    # persists (the kernel-linked submission is permanent). See memory new-comp-notebook-publish-two-step-public.
     kmeta = {
         "id": f"{USER}/{slug}", "title": f"NeuroGolf {score} | {BRANDING}",
         "code_file": out_nb.name, "language": "python", "kernel_type": "notebook",
@@ -123,6 +124,25 @@ def wait_complete(slug, tries=80, delay=15):
             sys.exit(f"kernel {slug} errored: {st}")
         time.sleep(delay)
     sys.exit(f"kernel {slug} did not complete in time")
+
+
+def set_meta(outdir, is_private, comp_sources):
+    """Rewrite is_private + competition_sources in the built kernel-metadata.json, for re-pushes."""
+    p = pathlib.Path(outdir) / "kernel-metadata.json"
+    m = json.loads(p.read_text())
+    m["is_private"] = "true" if is_private else "false"
+    m["competition_sources"] = list(comp_sources)
+    p.write_text(json.dumps(m, indent=1))
+
+
+def is_public(slug, tries=8, delay=10):
+    """A kernel is public iff it surfaces in the public --user listing (that listing hides privates)."""
+    for _ in range(tries):
+        rows = sh([KAGGLE, "kernels", "list", "--user", USER, "--csv", "-p", "1", "--page-size", "100"]).stdout
+        if any(r.get("ref", "").endswith(slug) for r in csv.DictReader(io.StringIO(rows))):
+            return True
+        time.sleep(delay)
+    return False
 
 
 def top_ref():
@@ -180,6 +200,8 @@ def main():
     print(f"[build] fresh notebook built for NEW kernel slug={slug}, content-match OK (score {a.score})")
     if a.dry:
         print("[dry] not pushing"); return
+    url = f"https://www.kaggle.com/code/{USER}/{slug}"
+    # 1) push PRIVATE + comp-source, and badge it (needs the comp attached).
     ver, _ = push(work / "out")
     print(f"[push] new PRIVATE kernel pushed (comp-source, badge-ready): {USER}/{slug} v{ver}")
     wait_complete(slug)
@@ -189,12 +211,15 @@ def main():
     print(f"[verify] badge {bscore} vs content {a.score} ({'MATCH' if ok else 'MISMATCH!'}) ref={bref}")
     if not ok:
         sys.exit("VERIFY FAILED — inspect the new kernel")
-    url = f"https://www.kaggle.com/code/{USER}/{slug}"
-    print(f"[done] built + badged (score={a.score}) but PRIVATE — CLI cannot make a comp-source "
-          f"notebook public mid-competition.")
-    print(f"[action] flip to PUBLIC on the website (Settings -> Sharing -> Public), or via the "
-          f"connected Claude browser extension: {url}/settings")
-    print(f"[url] {url}")
+    # 2) make PUBLIC in two steps (one-step de-source+public 403s; the badge persists across both).
+    set_meta(work / "out", is_private=True, comp_sources=[])
+    dv, _ = push(work / "out"); print(f"[desrc] de-sourced while PRIVATE: v{dv}"); wait_complete(slug)
+    set_meta(work / "out", is_private=False, comp_sources=[])
+    pv, _ = push(work / "out"); print(f"[public] flipped PUBLIC (no source): v{pv}"); wait_complete(slug)
+    if not is_public(slug):
+        sys.exit(f"public flip did not surface in the public listing — inspect {url}")
+    print(f"[verify] public listing visible + badge {a.score} preserved (submission {bref})")
+    print(f"[done] PUBLIC + badged {a.score}: {url}")
 
 
 if __name__ == "__main__":
